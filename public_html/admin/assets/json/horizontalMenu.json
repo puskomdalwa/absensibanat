@@ -1,0 +1,55 @@
+{
+  "menu": [
+    {
+      "name": "Dashboards",
+      "url": "admin/dashboard",
+      "icon": "menu-icon tf-icons ti ti-smart-home",
+      "slug": "admin.dashboard"
+    },
+    {
+      "menuHeader": "News"
+    },
+    {
+      "name": "Category",
+      "url": "/admin/category",
+      "icon": "menu-icon tf-icons ti ti-folder",
+      "slug": "admin.category"
+    },
+    {
+      "name": "News",
+      "url": "/admin/news",
+      "icon": "menu-icon tf-icons ti ti-files",
+      "slug": "admin.news"
+    },
+    {
+      "menuHeader": "Game"
+    },
+    {
+      "name": "Player",
+      "url": "/admin/player",
+      "icon": "menu-icon tf-icons ti ti-user",
+      "slug": "admin.player"
+    },
+    {
+      "name": "Score",
+      "url": "/admin/score",
+      "icon": "menu-icon tf-icons ti ti-star",
+      "slug": "admin.score"
+    },
+    {
+      "menuHeader": "Administrator"
+    },
+    {
+      "name": "User",
+      "url": "/admin/user",
+      "icon": "menu-icon tf-icons ti ti-user",
+      "slug": "admin.user"
+    },
+    {
+      "name": "Profile",
+      "url": "/admin/profile",
+      "icon": "menu-icon tf-icons ti ti-id-badge",
+      "slug": "admin.profile"
+    }
+  ]
+}

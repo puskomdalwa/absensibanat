@@ -1,0 +1,50 @@
+@font-face {
+    font-family: "pt-font";
+    src: url("../../fonts/pt-font/pt-font.ttf?5ff2f70882bedebb09d812961feeb5e7") format("truetype"),
+        url("../../fonts/pt-font/pt-font.woff?5ff2f70882bedebb09d812961feeb5e7") format("woff"),
+        url("../../fonts/pt-font/pt-font.woff2?5ff2f70882bedebb09d812961feeb5e7") format("woff2"),
+        url("../../fonts/pt-font/pt-font.eot?5ff2f70882bedebb09d812961feeb5e7#iefix") format("embedded-opentype"),
+        url("../../fonts/pt-font/pt-font.svg?5ff2f70882bedebb09d812961feeb5e7#pt-font") format("svg");
+}
+
+i[class^="pt-font-"]:before, i[class*=" pt-font-"]:before {
+    font-family: pt-font !important;
+    font-style: normal;
+    font-weight: normal !important;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.pt-font-cpu:before {
+    content: "\f101";
+}
+.pt-font-desktop:before {
+    content: "\f102";
+}
+.pt-font-diamond:before {
+    content: "\f103";
+}
+.pt-font-dress:before {
+    content: "\f104";
+}
+.pt-font-high-heels:before {
+    content: "\f105";
+}
+.pt-font-home:before {
+    content: "\f106";
+}
+.pt-font-kite:before {
+    content: "\f107";
+}
+.pt-font-smartphone:before {
+    content: "\f108";
+}
+.pt-font-teddy-bear:before {
+    content: "\f109";
+}
+.pt-font-tshirt:before {
+    content: "\f10a";
+}

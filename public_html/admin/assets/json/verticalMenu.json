@@ -1,0 +1,72 @@
+{
+  "menu": [
+    {
+      "name": "Dashboard",
+      "url": "admin/dashboard",
+      "icon": "menu-icon tf-icons ti ti-smart-home",
+      "slug": "admin.dashboard",
+      "role": "admin,player"
+    },
+    {
+      "menuHeader": "Data",
+      "role": "admin"
+    },
+    {
+      "name": "Role",
+      "url": "/admin/role",
+      "icon": "menu-icon tf-icons ti ti-folder",
+      "slug": "admin.role.",
+      "role": "admin"
+    },
+    {
+      "name": "Departemen",
+      "url": "/admin/departemen",
+      "icon": "menu-icon tf-icons ti ti-folder",
+      "slug": "admin.departemen.",
+      "role": "admin"
+    },
+    {
+      "menuHeader": "Absensi",
+      "role": "admin"
+    },
+    {
+      "name": "Dosen",
+      "url": "/admin/category",
+      "icon": "menu-icon tf-icons ti ti-folder",
+      "slug": "admin.category.",
+      "role": "admin"
+    },
+    {
+      "name": "News",
+      "url": "/admin/news",
+      "icon": "menu-icon tf-icons ti ti-files",
+      "slug": "admin.news.",
+      "role": "admin"
+    },
+    {
+      "menuHeader": "Administrator",
+      "role": "admin,player"
+    },
+    {
+      "name": "User",
+      "url": "/admin/user",
+      "icon": "menu-icon tf-icons ti ti-user",
+      "slug": "admin.user.",
+      "role": "admin"
+    },
+    {
+      "name": "Profile",
+      "url": "/admin/profile",
+      "icon": "menu-icon tf-icons ti ti-id-badge",
+      "slug": "admin.profile.",
+      "role": "admin,player"
+    },
+    {
+      "name": "API Client",
+      "url": "/admin/api-client",
+      "icon": "menu-icon tf-icons ti ti-key",
+      "slug": "admin.api_client.",
+      "role": "admin"
+    }
+  ]
+}

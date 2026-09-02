@@ -1,0 +1,20 @@
+:root {
+    --primary-gradiant: linear-gradient(
+        90deg,
+        rgb(82, 244, 27) 0%,
+        rgb(173, 255, 1) 100%
+    );
+    --primary-color: rgb(25, 53, 98);
+    --secondary-color: rgb(255, 255, 255);
+    --accent-color: rgb(25, 53, 98);
+    --bg-square-color:rgb(237, 246, 255);
+    --slider-arrow-border-color:rgb(204, 217, 231);
+    --slider-arrow-bg-color:  #e8f6ea;
+    --heading-color: rgb(20, 29, 33);
+    --text-color: rgb(71, 71, 71);
+    --text-color-2: rgb(0, 0, 0);
+    --text-color-3: rgb(54, 53, 57);
+    --bg-color: rgb(255, 255, 255);
+    --bg-color-2: rgb(20, 20, 18);
+    --transition: cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s;
+}

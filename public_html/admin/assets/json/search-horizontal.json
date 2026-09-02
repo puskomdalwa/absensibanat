@@ -1,0 +1,41 @@
+{
+  "pages": [
+    {
+      "name": "Dashboards",
+      "icon": "ti-smart-home",
+      "url": "admin/dashboard"
+    },
+    {
+      "name": "Category",
+      "icon": "ti-folder",
+      "url": "/admin/category"
+    },
+    {
+      "name": "News",
+      "icon": "ti-files",
+      "url": "/admin/news"
+    },
+    {
+      "name": "Player",
+      "icon": "ti-user",
+      "url": "/admin/player"
+    },
+    {
+      "name": "Score",
+      "icon": "ti-star",
+      "url": "/admin/score"
+    },
+    {
+      "name": "User",
+      "icon": "ti-user",
+      "url": "/admin/user"
+    },
+    {
+      "name": "Profile",
+      "icon": "ti-id-badge",
+      "url": "/admin/profile"
+    }
+  ],
+  "files": [],
+  "members": []
+}
