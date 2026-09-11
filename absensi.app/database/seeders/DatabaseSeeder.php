@@ -15,29 +15,32 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         // User::factory(10)->create();
-        DB::table('departemen')->insert([
+        DB::table('departemen')->insertOrIgnore([
             'kode' => '001',
             'nama' => 'Admin',
         ]);
-        DB::table('role')->insert([
+        DB::table('role')->insertOrIgnore([
             'akses' => 'admin',
         ]);
-        DB::table('role')->insert([
+        DB::table('role')->insertOrIgnore([
             'akses' => 'user',
         ]);
-        DB::table('role')->insert([
+        DB::table('role')->insertOrIgnore([
             'akses' => 'staff',
         ]);
-        DB::table('users')->insert([
+        $adminRoleId = DB::table('role')->where('akses', 'admin')->value('id') ?? 1;
+        $adminDeptId = DB::table('departemen')->value('id') ?? 1;
+
+        DB::table('users')->insertOrIgnore([
             'email' => 'admin@example.com',
             'username' => 'admin',
             'name' => 'Admin',
             'password' => bcrypt('admin'),
-            'role_id' => 1,
-            'departemen_id' => 1,
+            'role_id' => $adminRoleId,
+            'departemen_id' => $adminDeptId,
             'jenis_kelamin' => '*',
         ]);
-        DB::table('verify')->insert([
+        DB::table('verify')->insertOrIgnore([
             [
                 'name' => 'finger',
                 'keterangan' => null,
@@ -76,7 +79,7 @@ class DatabaseSeeder extends Seeder
             ],
         ]);
 
-        DB::table('device')->insert([
+        DB::table('device')->insertOrIgnore([
             [
                 'name' => 'ABSENSI LOBBY',
                 'cloud_id' => 'C2642CA867122A34',

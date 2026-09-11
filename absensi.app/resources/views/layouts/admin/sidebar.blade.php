@@ -2,9 +2,9 @@
     <div class="app-brand demo">
         <a href="{{ route('root.index') }}" class="app-brand-link">
             <span class="app-brand-logo demo">
-                <img src="{{ asset('assets/img/favicon-admin.png') }}" alt="logo">
+                <img src="{{ asset('home/assets/imgs/theme/logo.png') }}" alt="UII Dalwa Logo" style="max-height: 40px;">
             </span>
-            <span class="app-brand-text demo menu-text fw-bold">{{ config('app.name') }}</span>
+            <span class="app-brand-text demo menu-text fw-bold ms-2" style="color: var(--banat-primary-dark);">Absensi Banat</span>
         </a>
 
         <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">

@@ -49,6 +49,21 @@ class LoginController extends Controller
         return 'username';
     }
 
+    /**
+     * Get the needed authorization credentials from the request.
+     * Normalizes username to lowercase for seamless login.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return array
+     */
+    protected function credentials(Request $request)
+    {
+        return [
+            'username' => strtolower(trim((string) $request->username)),
+            'password' => $request->password,
+        ];
+    }
+
     protected function authenticated(Request $request, $user)
     {
         if ($user->hasRole('admin', 'staff')) {

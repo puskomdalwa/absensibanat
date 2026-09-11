@@ -36,7 +36,7 @@
                 uploadImageEdit.val('');
                 croppedImageEdit.val('');
                 formRemoveImageEdit.addClass('d-none');
-                formCroppedImageEdit.attr('src', "{{ asset('admin/assets/img/avatars/profile.png') }}");
+                formCroppedImageEdit.attr('src', "{{ asset('admin_assets/img/avatars/profile.png') }}");
             });
 
             // Handle Image Upload
@@ -132,7 +132,7 @@
                         photo);
                 } else {
                     $('#form-edit-record .cropped-image').attr('src',
-                        "{{ asset('admin/assets/img/avatars/profile.png') }}");
+                        "{{ asset('admin_assets/img/avatars/profile.png') }}");
                 }
 
                 offCanvasEditRecord.show();

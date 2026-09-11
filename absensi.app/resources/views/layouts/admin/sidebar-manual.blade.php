@@ -2,7 +2,7 @@
     <div class="app-brand demo">
         <a href="{{ route('root.index') }}" class="app-brand-link">
             <span class="app-brand-logo demo">
-                <img src="{{ asset('admin/assets/img/favicon-admin.png') }}"
+                <img src="{{ asset('admin_assets/img/favicon-admin.png') }}"
                     style="width: 100%;height: 100%;object-fit: contain;" alt="logo">
             </span>
             <span class="app-brand-text demo menu-text fw-bold">{{ config('app.name') }}</span>

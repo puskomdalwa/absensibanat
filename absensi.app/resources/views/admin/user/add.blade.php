@@ -40,7 +40,7 @@
                 uploadImageNew.val('');
                 croppedImageNew.val('');
                 formRemoveImageNew.addClass('d-none');
-                formCroppedImageNew.attr('src', "{{ asset('admin/assets/img/avatars/profile.png') }}");
+                formCroppedImageNew.attr('src', "{{ asset('admin_assets/img/avatars/profile.png') }}");
             });
 
             // Handle Image Upload

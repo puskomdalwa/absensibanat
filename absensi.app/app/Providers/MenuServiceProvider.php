@@ -1,6 +1,7 @@
 <?php
 namespace App\Providers;
 
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class MenuServiceProvider extends ServiceProvider
@@ -22,11 +23,11 @@ class MenuServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $verticalMenuJson   = file_get_contents(base_path('../public_html/admin/assets/json/verticalMenu.json'));
+        $verticalMenuJson   = file_get_contents(base_path('../public_html/admin_assets/json/verticalMenu.json'));
         $verticalMenuData   = json_decode($verticalMenuJson);
-        $horizontalMenuJson = file_get_contents(base_path('../public_html/admin/assets/json/horizontalMenu.json'));
+        $horizontalMenuJson = file_get_contents(base_path('../public_html/admin_assets/json/horizontalMenu.json'));
         $horizontalMenuData = json_decode($horizontalMenuJson);
         // Share all menuData to all the views
-        \View::share('menuData', [$verticalMenuData, $horizontalMenuData]);
+        View::share('menuData', [$verticalMenuData, $horizontalMenuData]);
     }
 }

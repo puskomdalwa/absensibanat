@@ -39,7 +39,7 @@
 <div class="">
     <label class="form-label">Departemen</label>
     <select class="select2 form-select" name="departemen_id">
-        @foreach ($departemen as $item)
+        @foreach ($departemen ?? [] as $item)
             <option value="{{ $item->id }}">{{ $item->nama }}</option>
         @endforeach
     </select>
@@ -48,7 +48,7 @@
     <label class="form-label">Type User</label>
     <select class="select2 form-select" name="type_id">
         <option value="">-- No Type --</option>
-        @foreach ($type as $item)
+        @foreach ($type ?? [] as $item)
             <option value="{{ $item->id }}">{{ $item->nama }}</option>
         @endforeach
     </select>
@@ -66,7 +66,7 @@
     <div class="d-flex align-items-end mb-3">
         <div class="preview d-flex align-items-center position-relative">
             <img class="cropped-image" alt="Cropped Preview"
-                src="{{ asset('admin/assets/img/avatars/profile.png') }}" />
+                src="{{ asset('admin_assets/img/avatars/profile.png') }}" />
         </div>
         <button type="button" class="btn btn-danger ms-2 remove-image d-none">
             Remove

@@ -50,7 +50,7 @@
             <li class="nav-item navbar-dropdown dropdown-user dropdown">
                 <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
                     <div class="avatar avatar-online">
-                        <img src="{{ \Auth::user()->photo ? asset('photo') . '/' . \Auth::user()->photo : asset('admin/assets/img/avatars/profile-2.png') }}"
+                        <img src="{{ \Auth::user()->photo ? asset('photo') . '/' . \Auth::user()->photo : asset('admin_assets/img/avatars/profile-2.png') }}"
                             alt class="rounded-circle" />
                     </div>
                 </a>
@@ -60,7 +60,7 @@
                             <div class="d-flex align-items-center">
                                 <div class="flex-shrink-0 me-2">
                                     <div class="avatar avatar-online">
-                                        <img src="{{ \Auth::user()->photo ? asset('photo') . '/' . \Auth::user()->photo : asset('admin/assets/img/avatars/profile-2.png') }}"
+                                        <img src="{{ \Auth::user()->photo ? asset('photo') . '/' . \Auth::user()->photo : asset('admin_assets/img/avatars/profile-2.png') }}"
                                             alt class="rounded-circle" />
                                     </div>
                                 </div>

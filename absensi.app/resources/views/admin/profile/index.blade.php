@@ -9,12 +9,12 @@
         <div class="col-12">
             <div class="card mb-6">
                 <div class="user-profile-header-banner">
-                    <img src="{{ asset('admin/assets/img/pages/profile-banner.png') }}" alt="Banner image"
+                    <img src="{{ asset('admin_assets/img/pages/profile-banner.png') }}" alt="Banner image"
                         class="rounded-top w-100" />
                 </div>
                 <div class="user-profile-header d-flex flex-column flex-lg-row text-sm-start text-center mb-5">
                     <div class="flex-shrink-0 mt-n2 mx-sm-0 mx-auto">
-                        <img src="{{ $user->photo ? asset('photo') . '/' . $user->photo : asset('admin/assets/img/avatars/profile-2.png') }}"
+                        <img src="{{ $user->photo ? asset('photo') . '/' . $user->photo : asset('admin_assets/img/avatars/profile-2.png') }}"
                             alt="user image" class="d-block h-auto ms-0 ms-sm-6 rounded user-profile-img"
                             style="width: 100px;height: 100px" />
                     </div>

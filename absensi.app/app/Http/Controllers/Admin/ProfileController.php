@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Models\Departemen;
+use App\Models\Type;
 use Illuminate\Http\Request;
 use App\Http\Services\BulkData;
 use App\Http\Controllers\Controller;
@@ -14,7 +16,9 @@ class ProfileController extends Controller
     {
         $user = \Auth::user();
         $role = Role::all();
-        return view('admin.profile.index', compact('user', 'role'));
+        $departemen = Departemen::all();
+        $type = Type::all();
+        return view('admin.profile.index', compact('user', 'role', 'departemen', 'type'));
     }
 
     public function update(Request $request)

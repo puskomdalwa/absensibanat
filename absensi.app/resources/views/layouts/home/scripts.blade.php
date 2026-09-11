@@ -23,7 +23,7 @@
     <script src="{{ asset('home/assets/js/plugins/datatables.min.js') }}"></script>
     <script src="{{ asset('home/assets/js/plugins/jquery.loading.js') }}"></script>
     <script src="{{ asset('home/assets/js/plugins/toastr.min.js') }}"></script>
-    <script src="{{ asset('admin/assets/vendor/libs/toastr/toastr-custom.js') }}"></script>
+    <script src="{{ asset('admin_assets/vendor/libs/toastr/toastr-custom.js') }}"></script>
 
     <!-- Template  JS -->
     {{-- <script src="{{ asset('home/assets/js/custom.js') }}"></script> --}}
