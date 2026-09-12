@@ -49,7 +49,7 @@
             </div>
             <div class="col-md-6 text-center text-md-end">
                 <p class="small text-white-50 mb-0">
-                    Designed for <span style="color: #fb7185;">Mahasiswi & Civitas Banat UII Dalwa</span>
+                    Designed for <span style="color: #fb7185;">Civitas Banat UII Dalwa</span>
                 </p>
             </div>
         </div>
