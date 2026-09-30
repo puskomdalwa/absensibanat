@@ -62,6 +62,13 @@
       "role": "admin,player"
     },
     {
+      "name": "Fingerspot Cloud",
+      "url": "/admin/fingerspot",
+      "icon": "menu-icon tf-icons ti ti-fingerprint",
+      "slug": "admin.fingerspot.",
+      "role": "admin"
+    },
+    {
       "name": "API Client",
       "url": "/admin/api-client",
       "icon": "menu-icon tf-icons ti ti-key",
