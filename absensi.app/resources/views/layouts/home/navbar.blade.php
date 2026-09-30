@@ -194,7 +194,7 @@
                  </form>
              </div>
              <div class="mobile-menu-wrap mobile-header-border">
-                 <div class="main-categori-wrap mobile-header-border">
+                 <div class="main-categori-wrap mobile-header-border mt-3 mb-3">
                      <a class="categori-button-active-2" href="#">
                          <span class="fi-rs-apps"></span> Departemen
                      </a>
@@ -230,6 +230,16 @@
                                  Aplikasi</a>
                          </li>
                          @if (\Auth::check())
+                             <li class="menu-item-has-children">
+                                 <span class="menu-expand"></span><a href="{{ route('dashboard.index') }}">Dashboard</a>
+                             </li>
+                             <li class="menu-item-has-children">
+                                 <span class="menu-expand"></span><a href="{{ route('logout') }}"
+                                     onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Logout</a>
+                                 <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                                     @csrf
+                                 </form>
+                             </li>
                          @else
                              <li class="menu-item-has-children">
                                  <span class="menu-expand"></span><a href="{{ route('login') }}">Login</a>
@@ -239,36 +249,11 @@
                  </nav>
                  <!-- mobile menu end -->
              </div>
-             <div class="mobile-header-info-wrap mobile-header-border">
-                 @if (\Auth::check())
-                     <div class="single-mobile-header-info">
-                         <a href="{{ route('login') }}">Dashboard</a>
-                     </div>
-                     <div class="single-mobile-header-info">
-                         <a href="{{ route('logout') }}"
-                             onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                             Log out
-                         </a>
-                         <form id="logout-form" action="{{ route('logout') }}" method="POST"
-                             style="display: none;">
-                             @csrf
-                         </form>
-                     </div>
-                 @else
-                     <div class="single-mobile-header-info">
-                         <a href="{{ route('login') }}">Log In</a>
-                     </div>
-                 @endif
-                 <hr>
-                 <div class="single-mobile-header-info">
-                     <a href="#">UII Dalwa </a>
-                 </div>
-             </div>
          </div>
      </div>
  </div>
 
- <div class="mobile-filter-active mobile-header-wrapper-style" style="right: 0">
+ <div class="mobile-filter-active mobile-header-wrapper-style">
      <div class="mobile-header-wrapper-inner">
          <div class="mobile-header-top">
              <div class="mobile-header-logo">
@@ -276,37 +261,36 @@
                          alt="logo" /></a>
              </div>
              <div class="mobile-menu-close close-style-wrap close-style-position-inherit">
-                 <button class="close-style search-close">
+                 <button class="close-style search-close" type="button">
                      <i class="icon-top"></i>
                      <i class="icon-bottom"></i>
                  </button>
              </div>
          </div>
          <div class="mobile-header-content-area">
-             <div class="main-categori-wrap mobile-header-border">
-                 <a class="categori-button-active-2" href="#">
-                     <span class="fi-rs-apps"></span> Pilih Departemen
-                 </a>
+             <div class="mobile-filter-header-badge mb-4">
+                 <i class="fa-solid fa-filter me-2"></i> Pilih Departemen
              </div>
 
-             <div class="radio-price">
-                 <div class="radio-list">
-                     @foreach ($departemen as $item)
-                         <div class="radio-item">
-                             <input name="mobile_departemen_id" id="dep-{{ $item->id }}" type="radio"
-                                 value="{{ $item->id }}" />
-                             <label for="dep-{{ $item->id }}">
-                                 <p class="text-bold">
-                                     {{ $item->nama }}
-                                 </p>
-                             </label>
-                         </div>
-                     @endforeach
-                 </div>
+             <div class="banat-filter-group mb-4">
+                 @foreach ($departemen as $item)
+                     <label class="banat-filter-option" for="dep-{{ $item->id }}">
+                         <input name="mobile_departemen_id" id="dep-{{ $item->id }}" type="radio"
+                             value="{{ $item->id }}" />
+                         <span class="custom-radio-indicator"></span>
+                         <span class="filter-option-label">{{ $item->nama }}</span>
+                     </label>
+                 @endforeach
              </div>
 
-             <button class="btn btn-primary w-100" id="btn-submit-filter">Filter</button>
-             <button class="btn bg-danger w-100 mt-3" id="btn-delete-filter">Hapus Filter</button>
+             <div class="d-flex flex-column gap-2 mt-4">
+                 <button class="btn-banat-primary w-100 py-3" id="btn-submit-filter" type="button">
+                     <i class="fa-solid fa-check me-2"></i> Terapkan Filter
+                 </button>
+                 <button class="btn-banat-outline w-100 py-2" id="btn-delete-filter" type="button">
+                     <i class="fa-solid fa-rotate-left me-2"></i> Hapus Filter
+                 </button>
+             </div>
          </div>
      </div>
  </div>

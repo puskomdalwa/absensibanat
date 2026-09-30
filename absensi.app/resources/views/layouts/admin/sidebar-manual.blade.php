@@ -122,13 +122,20 @@
                     <div data-i18n="Kategori">Kategori</div>
                 </a>
             </li>
-            {{-- <!-- API Client -->
+            <!-- Fingerspot Cloud -->
+            <li class="menu-item {{ request()->routeIs('admin.fingerspot*') ? 'active' : '' }}">
+                <a href="{{ route('admin.fingerspot.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ti ti-fingerprint"></i>
+                    <div data-i18n="Fingerspot Cloud">Fingerspot Cloud</div>
+                </a>
+            </li>
+            <!-- API Client -->
             <li class="menu-item {{ request()->routeIs('admin.api_client*') ? 'active' : '' }}">
                 <a href="{{ route('admin.api_client.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons ti ti-key"></i>
                     <div data-i18n="API Client">API Client</div>
                 </a>
-            </li> --}}
+            </li>
         @endif
         <!-- Profile -->
         <li class="menu-item {{ request()->routeIs('admin.profile*') ? 'active' : '' }}">

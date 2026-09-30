@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\GalleryController;
 use App\Http\Controllers\Admin\KategoriController;
 use App\Http\Controllers\Admin\ApiClientController;
 use App\Http\Controllers\Admin\TypeController;
+use App\Http\Controllers\Admin\FingerspotController;
 use App\Http\Controllers\LaporanController;
 
 /*
@@ -177,6 +178,41 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,staff'])->group(function
         Route::post('/store', [ApiClientController::class, 'store'])->name('admin.api_client.store');
         Route::put('/update', [ApiClientController::class, 'update'])->name('admin.api_client.update');
         Route::delete('/delete', [ApiClientController::class, 'delete'])->name('admin.api_client.delete');
+    });
+
+    Route::prefix('fingerspot')->middleware('role:admin')->group(function () {
+        Route::get('/', [FingerspotController::class, 'index'])->name('admin.fingerspot.index');
+        Route::get('/test-connection', [FingerspotController::class, 'testConnection'])->name('admin.fingerspot.test_connection');
+        
+        // Device Management
+        Route::get('/devices/data', [FingerspotController::class, 'devicesData'])->name('admin.fingerspot.devices.data');
+        Route::post('/devices/store', [FingerspotController::class, 'deviceStore'])->name('admin.fingerspot.devices.store');
+        Route::put('/devices/update', [FingerspotController::class, 'deviceUpdate'])->name('admin.fingerspot.devices.update');
+        Route::delete('/devices/delete', [FingerspotController::class, 'deviceDelete'])->name('admin.fingerspot.devices.delete');
+        Route::post('/devices/info', [FingerspotController::class, 'deviceInfo'])->name('admin.fingerspot.devices.info');
+        Route::post('/devices/set-time', [FingerspotController::class, 'deviceSetTime'])->name('admin.fingerspot.devices.set_time');
+        Route::post('/devices/restart', [FingerspotController::class, 'deviceRestart'])->name('admin.fingerspot.devices.restart');
+
+        // Attendance Logs (AttLog)
+        Route::post('/attlog/fetch', [FingerspotController::class, 'attlogFetch'])->name('admin.fingerspot.attlog.fetch');
+        Route::post('/attlog/sync', [FingerspotController::class, 'attlogSync'])->name('admin.fingerspot.attlog.sync');
+
+        // Device User Management
+        Route::get('/users/data', [FingerspotController::class, 'deviceUsersData'])->name('admin.fingerspot.users.data');
+        Route::post('/users/get-all-pin', [FingerspotController::class, 'deviceUsersGetAllPin'])->name('admin.fingerspot.users.get_all_pin');
+        Route::post('/users/get-info', [FingerspotController::class, 'deviceUsersGetInfo'])->name('admin.fingerspot.users.get_info');
+        Route::post('/users/set-info', [FingerspotController::class, 'deviceUsersSetInfo'])->name('admin.fingerspot.users.set_info');
+        Route::delete('/users/delete', [FingerspotController::class, 'deviceUsersDelete'])->name('admin.fingerspot.users.delete');
+        Route::post('/users/reg-online', [FingerspotController::class, 'deviceUsersRegOnline'])->name('admin.fingerspot.users.reg_online');
+        Route::post('/users/copy', [FingerspotController::class, 'deviceUsersCopy'])->name('admin.fingerspot.users.copy');
+
+        // Commands & Webhook Logs
+        Route::get('/commands/data', [FingerspotController::class, 'commandsData'])->name('admin.fingerspot.commands.data');
+        Route::get('/commands/detail', [FingerspotController::class, 'commandDetail'])->name('admin.fingerspot.commands.detail');
+        Route::post('/commands/clear', [FingerspotController::class, 'clearCommands'])->name('admin.fingerspot.commands.clear');
+
+        // API Playground & Tester
+        Route::post('/api/test', [FingerspotController::class, 'testApi'])->name('admin.fingerspot.api.test');
     });
 });
 
