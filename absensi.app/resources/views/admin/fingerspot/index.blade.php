@@ -192,9 +192,10 @@ $(document).ready(function() {
     // ----------------------------------------------------
     // SETUP CSRF TOKEN FOR ALL AJAX
     // ----------------------------------------------------
+    var csrfToken = $('meta[name="csrf-token"]').attr('content') || "{{ csrf_token() }}";
     $.ajaxSetup({
         headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            'X-CSRF-TOKEN': csrfToken
         }
     });
 
@@ -413,7 +414,7 @@ $(document).ready(function() {
                 $.ajax({
                     url: "{{ route('admin.fingerspot.devices.delete') }}",
                     type: "DELETE",
-                    data: { id: id },
+                    data: { id: id, _token: csrfToken },
                     success: function(res) {
                         showToastr('success', 'Sukses', res.message);
                         tableDevices.ajax.reload(null, false);
@@ -436,7 +437,7 @@ $(document).ready(function() {
         $.ajax({
             url: "{{ route('admin.fingerspot.devices.info') }}",
             type: "POST",
-            data: { cloud_id: cloudId },
+            data: { cloud_id: cloudId, _token: csrfToken },
             success: function(res) {
                 btn.prop('disabled', false);
                 if (res.success && res.data) {
@@ -525,7 +526,7 @@ $(document).ready(function() {
                 $.ajax({
                     url: "{{ route('admin.fingerspot.devices.restart') }}",
                     type: "POST",
-                    data: { cloud_id: cloudId },
+                    data: { cloud_id: cloudId, _token: csrfToken },
                     success: function(res) {
                         Swal.fire({
                             icon: 'success',
@@ -647,7 +648,8 @@ $(document).ready(function() {
                     type: "POST",
                     data: {
                         cloud_id: currentFetchedCloudId,
-                        logs: currentFetchedLogs
+                        logs: currentFetchedLogs,
+                        _token: csrfToken
                     },
                     success: function(res) {
                         btn.prop('disabled', false).html('<i class="ti ti-database-import me-1"></i> Sinkronkan ke Data Absensi Utama');
@@ -737,7 +739,7 @@ $(document).ready(function() {
                 $.ajax({
                     url: "{{ route('admin.fingerspot.users.get_all_pin') }}",
                     type: "POST",
-                    data: { cloud_id: cloudId },
+                    data: { cloud_id: cloudId, _token: csrfToken },
                     success: function(res) {
                         Swal.fire({
                             icon: 'success',
@@ -765,7 +767,7 @@ $(document).ready(function() {
         $.ajax({
             url: "{{ route('admin.fingerspot.users.get_info') }}",
             type: "POST",
-            data: { cloud_id: cloudId, pin: pin },
+            data: { cloud_id: cloudId, pin: pin, _token: csrfToken },
             success: function(res) {
                 Swal.fire({
                     icon: 'success',
@@ -932,7 +934,7 @@ $(document).ready(function() {
                 $.ajax({
                     url: "{{ route('admin.fingerspot.users.delete') }}",
                     type: "DELETE",
-                    data: { cloud_id: cloudId, pin: pin },
+                    data: { cloud_id: cloudId, pin: pin, _token: csrfToken },
                     success: function(res) {
                         Swal.fire({
                             icon: 'success',
@@ -1056,7 +1058,7 @@ $(document).ready(function() {
                 $.ajax({
                     url: "{{ route('admin.fingerspot.commands.clear') }}",
                     type: "POST",
-                    data: { days: days },
+                    data: { days: days, _token: csrfToken },
                     success: function(res) {
                         showToastr('success', 'Sukses', res.message);
                         tableCommands.ajax.reload(null, false);

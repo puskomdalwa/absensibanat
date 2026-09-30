@@ -11,6 +11,7 @@
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
         <form id="form-fetch-attlog">
+            @csrf
             <div class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label fw-semibold" for="attlog-cloud-id">Pilih Mesin Absensi <span class="text-danger">*</span></label>
