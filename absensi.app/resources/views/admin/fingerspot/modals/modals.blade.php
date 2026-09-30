@@ -7,6 +7,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="form-add-device">
+                @csrf
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Nama Mesin <span class="text-danger">*</span></label>
@@ -36,6 +37,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="form-edit-device">
+                @csrf
                 <input type="hidden" name="id" id="edit-device-id">
                 <div class="modal-body">
                     <div class="mb-3">
@@ -65,6 +67,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="form-set-time">
+                @csrf
                 <input type="hidden" name="cloud_id" id="set-time-cloud-id">
                 <div class="modal-body">
                     <p class="text-muted small mb-3">
@@ -100,6 +103,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="form-push-user">
+                @csrf
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -167,6 +171,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="form-copy-user">
+                @csrf
                 <input type="hidden" name="source_cloud_id" id="copy-source-cloud-id">
                 <input type="hidden" name="pin" id="copy-pin">
                 <div class="modal-body">
@@ -204,6 +209,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="form-reg-online">
+                @csrf
                 <input type="hidden" name="cloud_id" id="reg-cloud-id">
                 <input type="hidden" name="pin" id="reg-pin">
                 <div class="modal-body">

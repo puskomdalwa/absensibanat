@@ -15,6 +15,7 @@
             </div>
             <div class="card-body pt-3">
                 <form id="form-api-tester">
+                    @csrf
                     <div class="mb-3">
                         <label class="form-label fw-semibold" for="test-endpoint">Pilih Endpoint API <span class="text-danger">*</span></label>
                         <select class="form-select" id="test-endpoint" name="endpoint" required>
