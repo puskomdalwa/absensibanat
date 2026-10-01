@@ -26,7 +26,18 @@ class FingerspotController extends Controller
         $rawContent = file_get_contents('php://input');
         $decodedData = json_decode($rawContent, true);
 
+        Log::info('[Fingerspot Webhook] Incoming Request', [
+            'ip'         => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'raw_body'   => $rawContent,
+            'parsed'     => $decodedData,
+        ]);
+
         if (!$decodedData || !isset($decodedData['type'])) {
+            Log::warning('[Fingerspot Webhook] Invalid payload or missing event type', [
+                'ip'       => $request->ip(),
+                'raw_body' => $rawContent,
+            ]);
             return response()->json([
                 'status'  => false,
                 'message' => 'Format payload tidak valid atau type tidak ditemukan.'
@@ -36,6 +47,12 @@ class FingerspotController extends Controller
         $type = $decodedData['type'];
         $cloudId = $decodedData['cloud_id'] ?? null;
         $transId = $decodedData['trans_id'] ?? null;
+
+        Log::info("[Fingerspot Webhook] Dispatching event: {$type}", [
+            'type'     => $type,
+            'cloud_id' => $cloudId,
+            'trans_id' => $transId,
+        ]);
 
         // Process based on event type
         switch ($type) {
@@ -64,6 +81,12 @@ class FingerspotController extends Controller
                 return response()->json($this->handleCommandCallback($decodedData, 'restart_device'));
 
             default:
+                Log::info("[Fingerspot Webhook] Unhandled event type: {$type}", [
+                    'type'     => $type,
+                    'cloud_id' => $cloudId,
+                    'trans_id' => $transId,
+                    'data'     => $decodedData,
+                ]);
                 // Log unknown event
                 if ($transId) {
                     FingerspotCommand::where('trans_id', $transId)->update([
@@ -102,7 +125,20 @@ class FingerspotController extends Controller
             $verifyCode = $data['verify'] ?? 1;
             $statusScan = $data['status_scan'] ?? 0;
 
+            Log::info('[Fingerspot Webhook: attlog] Processing attendance scan record', [
+                'cloud_id'    => $cloudId,
+                'pin'         => $pin,
+                'scan'        => $scan,
+                'verify'      => $verifyCode,
+                'status_scan' => $statusScan,
+            ]);
+
             if (!$cloudId || !$pin || !$scan) {
+                Log::warning('[Fingerspot Webhook: attlog] Missing required parameters', [
+                    'cloud_id' => $cloudId,
+                    'pin'      => $pin,
+                    'scan'     => $scan,
+                ]);
                 return [
                     'status'  => false,
                     'message' => 'Parameter attlog tidak lengkap (cloud_id, pin, atau scan kosong).'
@@ -111,6 +147,13 @@ class FingerspotController extends Controller
 
             // Process scan record into local Absensi table
             $result = Fingerspot::processScanRecord($cloudId, $pin, $scan, $verifyCode, $statusScan);
+
+            Log::info('[Fingerspot Webhook: attlog] Process scan result', [
+                'cloud_id' => $cloudId,
+                'pin'      => $pin,
+                'scan'     => $scan,
+                'result'   => $result,
+            ]);
 
             // Log real-time attlog event
             $device = Device::where('cloud_id', $cloudId)->first();
@@ -130,7 +173,10 @@ class FingerspotController extends Controller
                 'data'    => $result,
             ];
         } catch (\Throwable $th) {
-            Log::error('Fingerspot Webhook AttLog Error: ' . $th->getMessage());
+            Log::error('[Fingerspot Webhook: attlog] Processing error: ' . $th->getMessage(), [
+                'exception' => $th,
+                'payload'   => $decodedData,
+            ]);
             return [
                 'status'  => false,
                 'message' => $th->getMessage()
@@ -146,6 +192,12 @@ class FingerspotController extends Controller
         $transId = $decodedData['trans_id'] ?? null;
         $cloudId = $decodedData['cloud_id'] ?? null;
         $data    = $decodedData['data'] ?? [];
+
+        Log::info('[Fingerspot Webhook: get_userinfo] Callback received', [
+            'trans_id' => $transId,
+            'cloud_id' => $cloudId,
+            'data'     => $data,
+        ]);
 
         if (!empty($data['pin']) && $cloudId) {
             // Update or create cached device user
@@ -166,6 +218,8 @@ class FingerspotController extends Controller
                     'last_sync_at' => now(),
                 ]
             );
+
+            Log::info("[Fingerspot Webhook: get_userinfo] User cached for PIN {$data['pin']}");
         }
 
         if ($transId) {
@@ -193,6 +247,13 @@ class FingerspotController extends Controller
         $data    = $decodedData['data'] ?? [];
         $pins    = $data['pin_arr'] ?? [];
         $total   = $data['total'] ?? count($pins);
+
+        Log::info('[Fingerspot Webhook: get_userid_list] Callback received', [
+            'trans_id' => $transId,
+            'cloud_id' => $cloudId,
+            'total'    => $total,
+            'pin_count'=> count($pins),
+        ]);
 
         // Populate placeholders in device users table if they don't exist yet
         if ($cloudId && is_array($pins)) {
@@ -237,6 +298,14 @@ class FingerspotController extends Controller
 
         $message = $isSuccess ? "Perintah {$commandType} berhasil dieksekusi oleh mesin." : "Perintah {$commandType} gagal dieksekusi oleh mesin.";
 
+        Log::info("[Fingerspot Webhook: {$commandType}] Callback received", [
+            'trans_id'   => $transId,
+            'status'     => $statusCode,
+            'is_success' => $isSuccess,
+            'message'    => $message,
+            'payload'    => $decodedData,
+        ]);
+
         if ($transId) {
             FingerspotCommand::where('trans_id', $transId)->update([
                 'callback_payload' => $decodedData,
@@ -262,12 +331,20 @@ class FingerspotController extends Controller
         $statusCode = (string)($decodedData['status'] ?? '1');
         $isSuccess  = ($statusCode === '1');
 
+        Log::info('[Fingerspot Webhook: delete_userinfo] Callback received', [
+            'trans_id'   => $transId,
+            'cloud_id'   => $cloudId,
+            'status'     => $statusCode,
+            'is_success' => $isSuccess,
+        ]);
+
         if ($transId) {
             $cmd = FingerspotCommand::where('trans_id', $transId)->first();
             if ($cmd) {
                 $pin = $cmd->payload_request['pin'] ?? null;
                 if ($isSuccess && $pin && $cloudId) {
                     FingerspotDeviceUser::where('cloud_id', $cloudId)->where('pin', $pin)->delete();
+                    Log::info("[Fingerspot Webhook: delete_userinfo] Deleted cached user PIN {$pin} for device {$cloudId}");
                 }
 
                 $cmd->update([

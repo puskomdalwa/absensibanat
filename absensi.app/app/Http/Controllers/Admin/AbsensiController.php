@@ -322,33 +322,59 @@ class AbsensiController extends Controller
     }
     public function import(Request $request)
     {
+        $tempPath = null;
         try {
             $request->validate([
-                'file' => 'required|file|mimes:xlsx,xls,csv'
+                'file' => 'required|file',
+            ], [
+                'file.required' => 'Silakan pilih file Excel / CSV terlebih dahulu.',
             ]);
 
+            $file = $request->file('file');
+            if (!$file || !$file->isValid()) {
+                throw new \Exception('File upload tidak valid atau gagal diunggah.');
+            }
+
+            $extension = strtolower($file->getClientOriginalExtension() ?: 'xlsx');
+            if (!in_array($extension, ['xlsx', 'xls', 'csv', 'txt'])) {
+                throw new \Exception('Format file harus berupa .xlsx, .xls, atau .csv.');
+            }
+
+            $tempDir = storage_path('app/temp-imports');
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0777, true);
+            }
+
+            $fileName = 'import_absensi_' . time() . '_' . uniqid() . '.' . $extension;
+            $file->move($tempDir, $fileName);
+            $tempPath = $tempDir . DIRECTORY_SEPARATOR . $fileName;
+
             $import = new AbsensiImport($request);
-            Excel::import($import, $request->file('file'));
+            Excel::import($import, $tempPath);
 
             return [
-                'status' => true,
-                'type' => 'success',
-                'data' => $import,
-                'message' => 'Success import ' . $import->success . ' data dari ' . $import->max . ' error: ' . $import->error
+                'status'  => true,
+                'type'    => 'success',
+                'data'    => $import,
+                'message' => 'Success import ' . $import->success . ' data dari ' . $import->max . ' error: ' . $import->error,
             ];
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'status' => false,
-                'type' => 'error',
+                'status'  => false,
+                'type'    => 'error',
                 'message' => implode('<br><br>', array_map('implode', $e->errors())),
-                'req' => $request->all()
+                'req'     => $request->all(),
             ]);
         } catch (\Throwable $th) {
             return [
-                'status' => false,
-                'type' => 'error',
-                'message' => $th->getMessage()
+                'status'  => false,
+                'type'    => 'error',
+                'message' => $th->getMessage(),
             ];
+        } finally {
+            if ($tempPath && file_exists($tempPath)) {
+                @unlink($tempPath);
+            }
         }
     }
 

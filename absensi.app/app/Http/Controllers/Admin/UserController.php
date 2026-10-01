@@ -9,8 +9,10 @@ use App\Models\Type;
 use Illuminate\Http\Request;
 use App\Http\Services\BulkData;
 use App\Imports\MainUserImport;
+use App\Imports\UserImport;
 use Yajra\DataTables\DataTables;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Facades\Excel;
@@ -371,21 +373,76 @@ class UserController extends Controller
 
     public function import(Request $request)
     {
+        $tempPath = null;
         try {
             $request->validate([
-                'file' => 'required|file|mimes:xlsx,xls,csv',
+                'file' => 'required|file',
+            ], [
+                'file.required' => 'Silakan pilih file Excel / CSV terlebih dahulu.',
+                'file.file'     => 'File yang diunggah tidak valid.',
             ]);
 
-            $mainUserImport = new MainUserImport($request);
-            Excel::import($mainUserImport, $request->file('file'));
+            $file = $request->file('file');
+            if (!$file || !$file->isValid()) {
+                throw new \Exception('File upload tidak valid atau gagal diunggah.');
+            }
 
-            $result = $mainUserImport->getResult();
+            $extension = strtolower($file->getClientOriginalExtension() ?: 'xlsx');
+            if (!in_array($extension, ['xlsx', 'xls', 'csv', 'txt'])) {
+                throw new \Exception('Format file harus berupa .xlsx, .xls, atau .csv (terdeteksi: .' . $extension . ').');
+            }
+
+            // Move uploaded file to a concrete physical storage path to prevent "Path cannot be empty" on Windows
+            $tempDir = storage_path('app/temp-imports');
+            if (!file_exists($tempDir)) {
+                mkdir($tempDir, 0777, true);
+            }
+
+            $fileName = 'import_user_' . time() . '_' . uniqid() . '.' . $extension;
+            $file->move($tempDir, $fileName);
+            $tempPath = $tempDir . DIRECTORY_SEPARATOR . $fileName;
+
+            if (!file_exists($tempPath) || filesize($tempPath) === 0) {
+                throw new \Exception('File sementara gagal dibuat atau kosong.');
+            }
+
+            // Robust reader that auto-detects real format (Xlsx, Csv, Html, Xls, etc.) regardless of extension
+            $rows = $this->extractSpreadsheetRows($tempPath);
+
+            if (empty($rows)) {
+                throw new \Exception('File tidak berisi data atau format tidak dapat dibaca.');
+            }
+
+            $userImport = new UserImport($request);
+            $userImport->collection(collect($rows));
+
+            $result = $userImport->getResult();
+
+            $msgParts = [];
+            $msgParts[] = "Berhasil memproses {$result['success']} dari {$result['max']} baris.";
+            if ($result['created'] > 0) {
+                $msgParts[] = "Baru: {$result['created']}.";
+            }
+            if ($result['updated'] > 0) {
+                $msgParts[] = "Diperbarui: {$result['updated']}.";
+            }
+            if (!empty($result['new_roles'])) {
+                $uniqueRoles = array_unique($result['new_roles']);
+                $msgParts[] = "Role baru dibuat: " . implode(', ', $uniqueRoles) . ".";
+            }
+            if (!empty($result['new_departemen'])) {
+                $uniqueDept = array_unique($result['new_departemen']);
+                $msgParts[] = "Departemen baru dibuat: " . implode(', ', $uniqueDept) . ".";
+            }
+            if ($result['error'] > 0) {
+                $msgParts[] = "Gagal/Dilewati: {$result['error']} baris.";
+            }
 
             return [
                 'status'  => true,
                 'type'    => 'success',
                 'data'    => $result,
-                'message' => 'Success import ' . $result['success'] . ' data dari ' . $result['max'] . ' error: ' . $result['error'],
+                'message' => implode(' ', $msgParts),
             ];
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -395,12 +452,126 @@ class UserController extends Controller
                 'req'     => $request->all(),
             ]);
         } catch (\Throwable $th) {
+            Log::error('[UserController Import Error] ' . $th->getMessage(), [
+                'trace'     => $th->getTraceAsString(),
+                'file'      => $th->getFile(),
+                'line'      => $th->getLine(),
+            ]);
             return [
                 'status'  => false,
                 'type'    => 'error',
                 'message' => $th->getMessage(),
             ];
+        } finally {
+            if ($tempPath && file_exists($tempPath)) {
+                @unlink($tempPath);
+            }
         }
+    }
+
+    /**
+     * Safely extract rows from any spreadsheet file (XLSX, XLS, CSV, HTML, TSV)
+     * regardless of whether extension matches actual contents.
+     */
+    protected function extractSpreadsheetRows(string $filePath): array
+    {
+        try {
+            $fileType = IOFactory::identify($filePath);
+            $reader = IOFactory::createReader($fileType);
+
+            if ($reader instanceof \PhpOffice\PhpSpreadsheet\Reader\Csv) {
+                $reader->setInputEncoding('UTF-8');
+                $handle = @fopen($filePath, 'r');
+                if ($handle) {
+                    $firstLine = fgets($handle);
+                    fclose($handle);
+                    $semiCount = substr_count($firstLine, ';');
+                    $commaCount = substr_count($firstLine, ',');
+                    $tabCount = substr_count($firstLine, "\t");
+
+                    if ($semiCount > $commaCount && $semiCount > $tabCount) {
+                        $reader->setDelimiter(';');
+                    } elseif ($tabCount > $commaCount && $tabCount > $semiCount) {
+                        $reader->setDelimiter("\t");
+                    } else {
+                        $reader->setDelimiter(',');
+                    }
+                }
+            }
+
+            $spreadsheet = $reader->load($filePath);
+            $sheet = $spreadsheet->getActiveSheet();
+            return $sheet->toArray(null, true, true, false);
+        } catch (\Throwable $e) {
+            // Fallback plain CSV parser
+            $rows = [];
+            if (($handle = @fopen($filePath, 'r')) !== false) {
+                $firstLine = fgets($handle);
+                rewind($handle);
+                $delim = (substr_count($firstLine, ';') > substr_count($firstLine, ',')) ? ';' : ',';
+                while (($data = fgetcsv($handle, 0, $delim)) !== false) {
+                    $rows[] = $data;
+                }
+                fclose($handle);
+            }
+            if (!empty($rows)) {
+                return $rows;
+            }
+            throw $e;
+        }
+    }
+
+    public function downloadTemplate(Request $request)
+    {
+        $format = strtolower($request->get('format', 'xlsx'));
+
+        $columns = ['NO', 'KODE', 'NAMA DOSEN', 'L/P', 'TTL', 'E-MAIL', 'HP', 'STATUS', 'ROLE', 'DEPARTEMEN', 'KODE-DEPARTEMEN'];
+        $sampleRows = [
+            ['1', '80117', 'AISYAH', 'P', 'KABUPATEN PASURUAN, 20-07-1981', 'aisyah01@gmail.com', '081936926117', 'AKTIF', 'user', 'Dosen', '002'],
+            ['2', '80118', 'AHMAD FAUZI', 'L', 'PASURUAN, 15-05-1985', 'ahmad.fauzi@example.com', '081234567890', 'AKTIF', 'staff', 'Staff', '003'],
+        ];
+
+        if ($format === 'csv') {
+            $headers = [
+                'Content-Type'        => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="template_import_user.csv"',
+                'Pragma'              => 'no-cache',
+                'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+                'Expires'             => '0',
+            ];
+
+            $callback = function () use ($columns, $sampleRows) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+                fputcsv($file, $columns, ';');
+                foreach ($sampleRows as $row) {
+                    fputcsv($file, $row, ';');
+                }
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        }
+
+        // Generate genuine .xlsx file
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Data Pengguna');
+        $sheet->fromArray(array_merge([$columns], $sampleRows));
+
+        foreach (range('A', 'K') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $tempDir = storage_path('app/temp-imports');
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0777, true);
+        }
+        $tempPath = $tempDir . '/template_import_user_' . time() . '.xlsx';
+        $writer->save($tempPath);
+
+        return response()->download($tempPath, 'template_import_user.xlsx')->deleteFileAfterSend(true);
     }
 
 }

@@ -144,6 +144,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,staff'])->group(function
         Route::put('/update', [UserController::class, 'update'])->name('admin.user.update');
         Route::delete('/delete', [UserController::class, 'delete'])->name('admin.user.delete');
         Route::post('/import', [UserController::class, 'import'])->name('admin.user.import')->middleware('role:admin');
+        Route::get('/import/template', [UserController::class, 'downloadTemplate'])->name('admin.user.import.template')->middleware('role:admin');
     });
 
     Route::prefix('kategori')->middleware('role:admin')->group(function () {

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Imports;
 
 use App\Imports\UserImport;
@@ -31,9 +32,14 @@ class MainUserImport implements WithMultipleSheets
     public function getResult()
     {
         return [
-            'error'   => $this->userImport->error,
-            'success' => $this->userImport->success,
-            'max'     => $this->userImport->max,
+            'error'          => $this->userImport->error ?? 0,
+            'success'        => $this->userImport->success ?? 0,
+            'created'        => $this->userImport->createdCount ?? 0,
+            'updated'        => $this->userImport->updatedCount ?? 0,
+            'max'            => $this->userImport->max ?? 0,
+            'new_roles'      => $this->userImport->newRolesList ?? [],
+            'new_departemen' => $this->userImport->newDepartemenList ?? [],
+            'errors_detail'  => $this->userImport->errorsDetail ?? [],
         ];
     }
 }
