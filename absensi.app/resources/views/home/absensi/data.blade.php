@@ -1,70 +1,73 @@
-<div class="shop-product-fillter">
-    <div class="totall-product">
-        <p>
-            We found <strong class="text-brand">{{ $isPaginated ? $users->total() : $users->count() }}</strong> items for
-            you!
-        </p>
-    </div>
-    <div class="sort-by-product-area">
-        <div class="sort-by-cover">
-            <select class="sort-by-product-wrap" onchange="loadData(1)" id="data-sort" aria-label="Default select example">
-                <option value="name" selected>Urutkan: Nama</option>
-                <option value="id">Urutkan: ID</option>
-            </select>
+<div class="banat-dashboard-card mb-4 p-3 px-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge" style="background: rgba(224, 82, 117, 0.12); color: var(--banat-primary); border: 1px solid var(--banat-border); border-radius: 20px; padding: 6px 14px; font-weight: 600; font-size: 0.85rem;">
+                <i class="fa-solid fa-users me-1"></i> Ditemukan <strong>{{ $isPaginated ? $users->total() : $users->count() }}</strong> Civitas
+            </span>
         </div>
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            <select class="sort-by-product-wrap" onchange="loadData(1)" id="data-sort" aria-label="Urutkan">
+                <option value="name" selected>Urutkan: Nama (A-Z)</option>
+                <option value="id">Urutkan: ID Civitas</option>
+            </select>
 
-        <div class="sort-by-cover">
-            <select class="sort-by-product-wrap" onchange="loadData(1)" id="data-show" aria-label="Default select example">
-                <option value="10" selected>Tampilkan: 10</option>
-                <option value="20">Tampilkan 20</option>
-                <option value="30">Tampilkan 30</option>
+            <select class="sort-by-product-wrap" onchange="loadData(1)" id="data-show" aria-label="Tampilkan">
+                <option value="12" selected>Tampilkan: 12</option>
+                <option value="24">Tampilkan: 24</option>
+                <option value="48">Tampilkan: 48</option>
                 <option value="*">Tampilkan Semua</option>
             </select>
         </div>
     </div>
 </div>
 
-@if ($users->count() <= 0) <div class="alert alert-warning" role="alert">Tidak ada data yang ditemukan.</div>
-    @endif
+@if ($users->count() <= 0)
+    <div class="alert banat-alert-info p-4 text-center" role="alert">
+        <i class="fa-solid fa-folder-open fa-2x mb-2 d-block"></i>
+        <span>Tidak ada civitas yang sesuai dengan kriteria pencarian Anda.</span>
+    </div>
+@endif
 
-    <div class="row g-4">
-        @foreach ($users as $item)
-        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-            <div class="glass-card h-100 p-3 position-relative d-flex flex-column justify-content-between">
-                <div>
-                    <!-- Top Badge & Avatar -->
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="badge-banat-tag">
-                            <i class="fa-solid fa-building-user me-1"></i> {{ $item->departemen->nama }}
-                        </span>
-                        <span class="small text-muted fw-600">#{{ $item->id }}</span>
-                    </div>
+<div class="row g-4 mb-4">
+    @foreach ($users as $item)
+    <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <div class="banat-dashboard-card h-100 p-3 position-relative d-flex flex-column justify-content-between">
+            <div>
+                <!-- Top Badge & ID -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge-dept" style="font-size: 0.74rem;">
+                        <i class="fa-solid fa-building-user me-1"></i> {{ $item->departemen->nama }}
+                    </span>
+                    <span class="small fw-700" style="color: var(--banat-primary);">#{{ $item->id }}</span>
+                </div>
 
-                    <div class="text-center my-3">
-                        <div class="position-relative d-inline-block">
+                <div class="text-center my-3">
+                    <div class="dashboard-avatar-wrapper mb-2">
+                        <div class="avatar-ring-wrapper" style="padding: 3px;">
                             <img src="{{ $item->photo ? asset('photo') . '/'.$item->photo : asset('home/assets/imgs/theme/user.png') }}" 
                                  alt="{{ $item->name }}" 
                                  class="rounded-circle shadow-sm" 
-                                 style="width: 85px; height: 85px; object-fit: cover; border: 3px solid var(--banat-primary-light);" />
+                                 style="width: 80px; height: 80px; object-fit: cover; border: 2px solid #ffffff; display: block;" />
                         </div>
-                        <h5 class="fw-700 mt-3 mb-1" style="color: var(--banat-text-dark); font-size: 1.05rem;">
-                            <a href="{{ route('absensi.show', ['user' => $item->id]) }}" class="text-decoration-none text-dark hover-primary">
-                                {{ $item->name }}
-                            </a>
-                        </h5>
-                        <p class="small text-muted mb-0">Civitas Banat UII Dalwa</p>
                     </div>
-                </div>
-
-                <div class="pt-3 border-top text-center" style="border-color: var(--banat-border) !important;">
-                    <a href="{{ route('absensi.show', ['user' => $item->id]) }}" class="btn-banat-outline btn-sm w-100 text-decoration-none">
-                        <i class="fa-solid fa-address-card me-1"></i> Lihat Absensi
-                    </a>
+                    <h5 class="fw-700 mt-2 mb-1" style="font-size: 1.02rem;">
+                        <a href="{{ route('absensi.show', ['user' => $item->id]) }}" class="text-decoration-none hover-primary" style="color: var(--banat-text-dark);">
+                            {{ $item->name }}
+                        </a>
+                    </h5>
+                    <p class="small text-muted mb-0">Civitas Banat UII Dalwa</p>
                 </div>
             </div>
+
+            <div class="pt-3 border-top text-center" style="border-color: var(--banat-border) !important;">
+                <a href="{{ route('absensi.show', ['user' => $item->id]) }}" class="btn-banat-outline btn-sm w-100 text-decoration-none py-2">
+                    <i class="fa-solid fa-calendar-check me-1"></i> Lihat Absensi
+                </a>
+            </div>
         </div>
-        @endforeach
     </div>
+    @endforeach
+</div>
     @if ($isPaginated)
     <!--pagination-->
     <div class="pagination-area mt-15 mb-sm-5 mb-lg-0">

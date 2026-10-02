@@ -208,12 +208,13 @@ body, input, button, select, textarea {
 
 /* Floating Form Inputs */
 .form-banat-control {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 1.5px solid var(--banat-border) !important;
+  background: #ffffff !important;
+  border: 1.5px solid rgba(224, 82, 117, 0.22) !important;
   border-radius: 14px !important;
   padding: 12px 18px !important;
   font-size: 0.95rem !important;
-  color: var(--banat-text-dark) !important;
+  color: #1e1926 !important;
+  -webkit-text-fill-color: #1e1926 !important;
   transition: all 0.3s ease !important;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
@@ -222,6 +223,8 @@ body, input, button, select, textarea {
   border-color: var(--banat-primary) !important;
   box-shadow: 0 0 0 4px var(--banat-primary-glow) !important;
   background: #ffffff !important;
+  color: #1e1926 !important;
+  -webkit-text-fill-color: #1e1926 !important;
   outline: none;
 }
 
@@ -898,5 +901,97 @@ body, input, button, select, textarea {
   background: rgba(190, 18, 60, 0.05) !important;
   border-color: #be123c !important;
 }
+
+/* ==========================================================================
+   FORM INPUT CONTROLS IN DARK MODE (LOGIN & GENERAL)
+   ========================================================================== */
+[data-theme="dark"] .form-banat-control,
+[data-theme="dark"] .form-control.form-banat-control,
+[data-theme="dark"] .input-icon-group input.form-banat-control {
+  background: #171124 !important;
+  background-color: #171124 !important;
+  border: 1.5px solid rgba(251, 113, 133, 0.35) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 500 !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.45) !important;
+}
+
+[data-theme="dark"] .form-banat-control:focus,
+[data-theme="dark"] .form-control.form-banat-control:focus,
+[data-theme="dark"] .input-icon-group input.form-banat-control:focus {
+  background: #1e1630 !important;
+  background-color: #1e1630 !important;
+  border-color: #fb7185 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(251, 113, 133, 0.28), inset 0 2px 4px rgba(0, 0, 0, 0.35) !important;
+  outline: none !important;
+}
+
+[data-theme="dark"] .form-banat-control::placeholder,
+[data-theme="dark"] .form-banat-control::-webkit-input-placeholder,
+[data-theme="dark"] .form-banat-control::-moz-placeholder,
+[data-theme="dark"] .form-banat-control:-ms-input-placeholder {
+  color: rgba(226, 232, 240, 0.45) !important;
+  -webkit-text-fill-color: rgba(226, 232, 240, 0.45) !important;
+  opacity: 1 !important;
+}
+
+[data-theme="dark"] .form-banat-control:-webkit-autofill,
+[data-theme="dark"] .form-banat-control:-webkit-autofill:hover, 
+[data-theme="dark"] .form-banat-control:-webkit-autofill:focus,
+[data-theme="dark"] .form-banat-control:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-box-shadow: 0 0 0px 1000px #171124 inset !important;
+  box-shadow: 0 0 0px 1000px #171124 inset !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+[data-theme="dark"] .input-icon-group i,
+[data-theme="dark"] .input-icon-group .input-icon-symbol {
+  color: #fb7185 !important;
+}
+
+[data-theme="dark"] .glass-card {
+  background: rgba(22, 17, 33, 0.94) !important;
+  border: 1px solid rgba(251, 113, 133, 0.25) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75) !important;
+}
+
+[data-theme="dark"] .glass-card h3 {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .glass-card .text-muted {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .form-label {
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .form-check-label {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .form-check-input {
+  background-color: #171124 !important;
+  border-color: rgba(251, 113, 133, 0.4) !important;
+}
+
+[data-theme="dark"] .form-check-input:checked {
+  background-color: #e11d48 !important;
+  border-color: #e11d48 !important;
+}
+
+[data-theme="dark"] .glass-card a[href*="root.index"] {
+  color: #fb7185 !important;
+}
+
+[data-theme="dark"] .glass-card a[href*="root.index"]:hover {
+  color: #fda4af !important;
+}
+
 
 
