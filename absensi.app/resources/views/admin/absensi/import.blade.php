@@ -1,9 +1,11 @@
-<div class="accordion mb-5" id="importData">
-    <div class="card accordion-item">
+<div class="accordion mb-4" id="importData">
+    <div class="card accordion-item border-0 shadow-sm" style="border-radius: 16px; border: 1px solid rgba(251, 113, 133, 0.25) !important;">
         <h2 class="accordion-header" id="importDataHeader">
-            <button type="button" class="accordion-button collapsed" data-bs-toggle="collapse"
-                data-bs-target="#importDataTarget" aria-expanded="false" aria-controls="importDataTarget">Import Data <i
-                    class="ti ti-file-import ms-1"></i></button>
+            <button type="button" class="accordion-button collapsed fw-semibold" data-bs-toggle="collapse"
+                data-bs-target="#importDataTarget" aria-expanded="false" aria-controls="importDataTarget" style="border-radius: 16px;">
+                <i class="ti ti-file-import me-2" style="color: #e11d48;"></i>
+                <span>Import Data Presensi Mesin Fingerprint</span>
+            </button>
         </h2>
         <div id="importDataTarget" class="accordion-collapse collapse" data-bs-parent="#importData" style="">
             <div class="accordion-body">

@@ -1,7 +1,6 @@
-<!-- Modal edit record -->
 <div class="offcanvas offcanvas-end" id="edit-record">
-    <div class="offcanvas-header border-bottom">
-        <h5 class="offcanvas-title">Edit API Client</h5>
+    <div class="offcanvas-header border-bottom py-3" style="background: linear-gradient(135deg, rgba(225, 29, 72, 0.05) 0%, rgba(251, 113, 133, 0.12) 100%);">
+        <h5 class="offcanvas-title fw-bold" style="color: #e11d48;"><i class="ti ti-edit me-1"></i> Edit API Client</h5>
         <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body flex-grow-1">

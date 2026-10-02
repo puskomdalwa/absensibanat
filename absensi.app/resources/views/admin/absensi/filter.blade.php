@@ -1,12 +1,16 @@
-<div class="card mb-6 p-0">
-    <div class="card-body">
+<div class="card mb-4 border-0 shadow-sm" style="border-radius: 20px; border: 1px solid rgba(251, 113, 133, 0.2) !important;">
+    <div class="card-body p-4">
+        <div class="d-flex align-items-center mb-3">
+            <i class="ti ti-filter me-2 fs-5" style="color: #e11d48;"></i>
+            <h6 class="mb-0 fw-bold" style="color: #e11d48;">Filter Parameter Presensi</h6>
+        </div>
         <div class="row">
-            <div class="col-md-6">
-                <label class="form-label">Role: </label>
+            <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Role: </label>
                 <select class="select2 form-select" id="role_id">
                     <option value="*">Semua Role</option>
                     @foreach ($role as $item)
-                        <option value="{{ $item->id }}">{{ $item->akses }}</option>
+                        <option value="{{ $item->id }}" {{ (request('role') == $item->id || request('role_id') == $item->id) ? 'selected' : '' }}>{{ $item->akses }}</option>
                     @endforeach
                 </select>
             </div>
@@ -15,7 +19,7 @@
                 <select class="select2 form-select" id="departemen_id">
                     <option value="*">Semua Departemen</option>
                     @foreach ($departemen as $item)
-                        <option value="{{ $item->id }}">{{ $item->nama }}</option>
+                        <option value="{{ $item->id }}" {{ (request('departemen') == $item->id || request('departemen_id') == $item->id) ? 'selected' : '' }}>{{ $item->nama }}</option>
                     @endforeach
                 </select>
             </div>

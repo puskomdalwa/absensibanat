@@ -33,7 +33,7 @@
             <li class="menu-item {{ request()->routeIs('admin.absensi*') ? 'active' : '' }}">
                 <a href="{{ route('admin.absensi.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons ti ti-checklist"></i>
-                    <div data-i18n="Absensi">Absensi</div>
+                    <div data-i18n="Absensi Departemen">Absensi Departemen</div>
                 </a>
             </li>
         @endif
@@ -46,9 +46,9 @@
                 </a>
             </li>
 
-            <!-- DATA-->
+            <!-- MANAGEMENT DATA MASTER -->
             <li class="menu-header small">
-                <span class="menu-header-text" data-i18n="News">DATA</span>
+                <span class="menu-header-text" data-i18n="Management Data Master">Management Data Master</span>
             </li>
 
             <!-- Role -->
@@ -73,9 +73,9 @@
                 </a>
             </li>
 
-            <!-- ABSENSI-->
+            <!-- ABSENSI DEPARTEMEN -->
             <li class="menu-header small">
-                <span class="menu-header-text" data-i18n="Absensi">Absensi</span>
+                <span class="menu-header-text" data-i18n="Absensi Departemen">Absensi Departemen</span>
             </li>
 
             <!-- Semua -->

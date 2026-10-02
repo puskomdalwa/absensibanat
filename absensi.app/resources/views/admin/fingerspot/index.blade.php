@@ -26,28 +26,28 @@
 
 @section('content')
     {{-- Header Banner & Stats --}}
-    <div class="card bg-gradient-primary text-white mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+    <div class="card mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, rgba(225, 29, 72, 0.05) 0%, rgba(251, 113, 133, 0.12) 100%); border-radius: 20px; border: 1px solid rgba(251, 113, 133, 0.25) !important;">
         <div class="card-body p-4">
             <div class="row align-items-center">
                 <div class="col-lg-8 col-md-7 mb-3 mb-md-0">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="rounded-circle bg-white bg-opacity-20 p-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                            <i class="ti ti-fingerprint ti-xl text-white"></i>
+                        <div class="d-flex align-items-center justify-content-center" style="width: 58px; height: 58px; background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%); border-radius: 16px; box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35);">
+                            <i class="ti ti-fingerprint ti-xl text-white" style="font-size: 2rem;"></i>
                         </div>
                         <div>
-                            <h4 class="text-white mb-1 fw-bold">Fingerspot Developer API Hub</h4>
-                            <p class="mb-0 text-white-50 small">
-                                Gateway kontrol REST API & Webhook dua arah untuk perangkat absensi biometrik Fingerspot (Online SDK).
+                            <h4 class="mb-1 fw-bold text-heading">Fingerspot Developer API Hub</h4>
+                            <p class="mb-0 text-muted small">
+                                Gateway kontrol REST API & Webhook dua arah untuk integrasi mesin biometrik Banat UII Dalwa (Online SDK)
                             </p>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-5 text-md-end">
-                    <div class="d-inline-flex flex-column align-items-md-end gap-1">
-                        <button type="button" class="btn btn-light btn-sm text-primary fw-bold shadow-sm" id="btn-test-connection">
+                    <div class="d-inline-flex flex-column align-items-md-end gap-2">
+                        <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm d-inline-flex align-items-center gap-1 px-3 py-2" id="btn-test-connection">
                             <i class="ti ti-activity me-1"></i> Cek Koneksi Cloud API
                         </button>
-                        <small class="text-white-50" id="connection-status-text">Base URL: {{ $apiUrl }}</small>
+                        <span class="badge" style="background: rgba(225, 29, 72, 0.1); color: #e11d48; border: 1px solid rgba(225, 29, 72, 0.25); border-radius: 50px; font-weight: 500;" id="connection-status-text">Base URL: {{ $apiUrl }}</span>
                     </div>
                 </div>
             </div>
@@ -57,56 +57,56 @@
     {{-- Overview Stats Row --}}
     <div class="row g-3 mb-4">
         <div class="col-xl-3 col-sm-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
+            <div class="card shadow-sm border-0 h-100" style="border-radius: 18px; border: 1px solid rgba(251, 113, 133, 0.18) !important;">
+                <div class="card-body d-flex align-items-center justify-content-between p-4">
                     <div>
                         <span class="text-muted small d-block">Mesin Terdaftar</span>
-                        <h4 class="mb-0 fw-bold text-dark mt-1">{{ $totalDevices }}</h4>
+                        <h4 class="mb-0 fw-bold mt-1" style="color: #e11d48;">{{ $totalDevices }}</h4>
                         <small class="text-primary"><i class="ti ti-cpu me-1"></i>Active Hardware</small>
                     </div>
-                    <div class="stat-card-icon bg-label-primary">
+                    <div class="stat-card-icon bg-label-primary" style="width: 48px; height: 48px; border-radius: 12px;">
                         <i class="ti ti-devices ti-md"></i>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-sm-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
+            <div class="card shadow-sm border-0 h-100" style="border-radius: 18px; border: 1px solid rgba(251, 113, 133, 0.18) !important;">
+                <div class="card-body d-flex align-items-center justify-content-between p-4">
                     <div>
                         <span class="text-muted small d-block">Scan Hari Ini (Live)</span>
                         <h4 class="mb-0 fw-bold text-success mt-1">{{ $todayScans }}</h4>
                         <small class="text-success"><i class="ti ti-check me-1"></i>Absensi Tercatat</small>
                     </div>
-                    <div class="stat-card-icon bg-label-success">
+                    <div class="stat-card-icon bg-label-success" style="width: 48px; height: 48px; border-radius: 12px;">
                         <i class="ti ti-calendar-event ti-md"></i>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-sm-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
+            <div class="card shadow-sm border-0 h-100" style="border-radius: 18px; border: 1px solid rgba(251, 113, 133, 0.18) !important;">
+                <div class="card-body d-flex align-items-center justify-content-between p-4">
                     <div>
                         <span class="text-muted small d-block">User di Mesin (Cache)</span>
                         <h4 class="mb-0 fw-bold text-info mt-1">{{ $totalDeviceUsers }}</h4>
                         <small class="text-info"><i class="ti ti-users me-1"></i>Terdata di Mesin</small>
                     </div>
-                    <div class="stat-card-icon bg-label-info">
+                    <div class="stat-card-icon bg-label-info" style="width: 48px; height: 48px; border-radius: 12px;">
                         <i class="ti ti-user-check ti-md"></i>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-xl-3 col-sm-6">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
+            <div class="card shadow-sm border-0 h-100" style="border-radius: 18px; border: 1px solid rgba(251, 113, 133, 0.18) !important;">
+                <div class="card-body d-flex align-items-center justify-content-between p-4">
                     <div>
                         <span class="text-muted small d-block">Perintah & Webhook Hari Ini</span>
                         <h4 class="mb-0 fw-bold text-warning mt-1">{{ $todayCommands }}</h4>
                         <small class="text-muted"><i class="ti ti-history me-1"></i>Audit Trail</small>
                     </div>
-                    <div class="stat-card-icon bg-label-warning">
+                    <div class="stat-card-icon bg-label-warning" style="width: 48px; height: 48px; border-radius: 12px;">
                         <i class="ti ti-broadcast ti-md"></i>
                     </div>
                 </div>

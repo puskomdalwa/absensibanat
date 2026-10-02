@@ -6,10 +6,7 @@
                 <script>
                     document.write(new Date().getFullYear());
                 </script>
-                , made with ❤️ by <a href="#" class="footer-link">Absensi App</a>
-            </div>
-            <div class="d-none d-lg-inline-block">
-                <a href="#" class="footer-link me-4">Absensi App</a>
+                , made with ❤️ by <a href="{{ route('root.index') }}" class="footer-link fw-semibold" style="color: #e11d48;">UII DALWA</a>
             </div>
         </div>
     </div>

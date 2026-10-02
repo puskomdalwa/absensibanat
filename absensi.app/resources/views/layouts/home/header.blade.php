@@ -21,7 +21,7 @@
 <link rel="stylesheet" href="{{ asset('home/assets/css/loader.css') }}" />
 <link rel="stylesheet" href="{{ asset('home/assets/css/plugins/toastr.min.css') }}" />
 <!-- Banat Feminine Luxury Theme -->
-<link rel="stylesheet" href="{{ asset('home/assets/css/banat-theme.css?v=6.5') }}" />
+<link rel="stylesheet" href="{{ asset('home/assets/css/banat-theme.css?v=6.6') }}" />
 
 <!-- Instant Theme Init Script (Zero-Flicker) -->
 <script>

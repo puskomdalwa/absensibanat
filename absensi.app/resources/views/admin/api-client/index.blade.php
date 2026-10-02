@@ -1,11 +1,33 @@
 @extends('layouts.admin.template')
 @section('title', 'API Client')
 @section('content')
+    <!-- BANAT LUXURY HERO HEADER -->
+    <div class="card mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, rgba(225, 29, 72, 0.05) 0%, rgba(251, 113, 133, 0.12) 100%); border-radius: 20px; border: 1px solid rgba(251, 113, 133, 0.25) !important;">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center justify-content-center" style="width: 54px; height: 54px; background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%); border-radius: 16px; box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35);">
+                        <i class="ti ti-key text-white" style="font-size: 1.8rem;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1 fw-bold text-heading">Manajemen API Client & Akses Integrasi</h4>
+                        <p class="mb-0 text-muted small">Kelola kredensial API key, secret token, dan integrasi sistem eksternal dengan Banat Cloud Platform</p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge" style="background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%); color: white; padding: 8px 16px; border-radius: 50px; font-weight: 600;">
+                        <i class="ti ti-lock-access me-1"></i> Data Master API Client
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @php($isStaff = false)
 
-    <div class="card" id="card-api-client">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0">Daftar API Client & Kredensial</h5>
+    <div class="card shadow-sm border-0" id="card-api-client" style="border-radius: 20px; border: 1px solid rgba(251, 113, 133, 0.2) !important;">
+        <div class="card-header d-flex justify-content-between align-items-center pb-2">
+            <h5 class="card-title mb-0 fw-bold" style="color: #e11d48;"><i class="ti ti-list-details me-1"></i> Daftar API Client & Kredensial</h5>
         </div>
         <div class="card-datatable table-responsive pt-0">
             <table class="datatables-basic table table-hover" id="table-api-client">

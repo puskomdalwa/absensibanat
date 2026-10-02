@@ -2063,20 +2063,79 @@ body, input, button, select, textarea {
   padding-bottom: 14px !important;
 }
 
-.sort-by-product-wrap {
-  background-color: var(--banat-bg-surface) !important;
-  color: var(--banat-text-dark) !important;
-  border: 1px solid var(--banat-border) !important;
+/* ==========================================================================
+   DROPDOWN & SELECT OPTIONS (LIGHT & DARK MODE HIGH CONTRAST)
+   ========================================================================== */
+select,
+.sort-by-product-wrap,
+.form-select,
+.dataTables_length select,
+.dt-length select {
+  background-color: var(--banat-bg-surface, #ffffff) !important;
+  color: var(--banat-text-dark, #1e293b) !important;
+  border: 1px solid var(--banat-border, #e2e8f0) !important;
   border-radius: 12px !important;
   padding: 8px 16px !important;
   font-size: 0.88rem !important;
   font-weight: 500 !important;
 }
 
-[data-theme="dark"] .sort-by-product-wrap {
-  background-color: #181224 !important;
+select option,
+.sort-by-product-wrap option,
+.form-select option,
+.dataTables_length select option,
+.dt-length select option,
+.dataTables_wrapper select option {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  padding: 8px 12px !important;
+}
+
+select option:checked,
+.sort-by-product-wrap option:checked,
+.form-select option:checked {
+  background-color: #ffe4e6 !important;
+  color: #be123c !important;
+  font-weight: 600 !important;
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] select,
+[data-theme="dark"] .sort-by-product-wrap,
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .dataTables_length select,
+[data-theme="dark"] .dt-length select,
+[data-theme="dark"] .dataTables_wrapper select {
+  background-color: #1a1329 !important;
   color: #f8fafc !important;
-  border-color: rgba(251, 113, 133, 0.25) !important;
+  border-color: rgba(251, 113, 133, 0.3) !important;
+  color-scheme: dark !important;
+}
+
+[data-theme="dark"] select option,
+[data-theme="dark"] .sort-by-product-wrap option,
+[data-theme="dark"] .form-select option,
+[data-theme="dark"] .dataTables_length select option,
+[data-theme="dark"] .dt-length select option,
+[data-theme="dark"] .dataTables_wrapper select option {
+  background-color: #1a1329 !important;
+  color: #f8fafc !important;
+  padding: 8px 12px !important;
+}
+
+[data-theme="dark"] select option:checked,
+[data-theme="dark"] .sort-by-product-wrap option:checked,
+[data-theme="dark"] .form-select option:checked {
+  background-color: #e11d48 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="dark"] select option:hover,
+[data-theme="dark"] .sort-by-product-wrap option:hover,
+[data-theme="dark"] .form-select option:hover {
+  background-color: #be123c !important;
+  color: #ffffff !important;
 }
 
 .pagination-area .page-link {
@@ -2175,7 +2234,8 @@ body, input, button, select, textarea {
   border-radius: 20px;
   padding: 22px;
   box-shadow: var(--banat-shadow-sm);
-  overflow: hidden;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
   transition: all 0.3s ease;
 }
 
@@ -2576,5 +2636,77 @@ div.dt-container div.dt-layout-row {
   box-shadow: 0 6px 18px rgba(225, 29, 72, 0.65) !important;
   color: #ffffff !important;
 }
+
+/* ==========================================================================
+   LANDING PAGE & DASHBOARD MOBILE RESPONSIVE ENHANCEMENTS
+   ========================================================================== */
+@media (max-width: 767.98px) {
+  /* Hero Proceeding Card on Mobile */
+  .hero-proceeding-card {
+    padding: 95px 14px 22px !important;
+    border-radius: 24px !important;
+  }
+  
+  .hero-proceeding-card h1 {
+    font-size: 1.85rem !important;
+    line-height: 1.25 !important;
+    margin-bottom: 10px !important;
+  }
+
+  .hero-proceeding-card .font-montez {
+    font-size: 1.45rem !important;
+  }
+
+  #hero3dAnchor {
+    height: 240px !important;
+  }
+
+  /* Quick Info Bar on Mobile: Clean spacing, no overlapping */
+  .hero-quick-info-card {
+    padding: 12px 10px !important;
+    border-radius: 16px !important;
+  }
+
+  .info-item-box {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 10px 12px;
+    width: 100%;
+  }
+
+  .info-item-icon {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 1.1rem !important;
+    border-radius: 12px !important;
+    flex-shrink: 0;
+  }
+
+  /* Dashboard Table Container on Mobile */
+  .banat-table-container {
+    padding: 12px 8px !important;
+    border-radius: 14px !important;
+  }
+
+  .banat-table {
+    min-width: 650px !important;
+  }
+
+  .banat-dashboard-card {
+    padding: 16px 14px !important;
+    border-radius: 16px !important;
+  }
+
+  .dashboard-avatar-img {
+    width: 72px !important;
+    height: 72px !important;
+  }
+
+  .dashboard-user-name {
+    font-size: 1.4rem !important;
+  }
+}
+
 
 

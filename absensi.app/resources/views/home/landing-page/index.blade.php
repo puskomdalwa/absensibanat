@@ -72,67 +72,67 @@
                     <!-- Restored Content below Buttons: Quick Info Bar with Mobile App Support -->
                     <div class="row justify-content-center pt-2">
                         <div class="col-12">
-                            <div style="background: rgba(255, 255, 255, 0.08) !important; backdrop-filter: blur(18px) !important; -webkit-backdrop-filter: blur(18px) !important; border: 1px solid rgba(255, 255, 255, 0.18) !important; border-radius: 20px; padding: 18px 24px; box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35); color: #ffffff !important;">
-                                <div class="row align-items-center g-3">
+                            <div class="hero-quick-info-card" style="background: rgba(255, 255, 255, 0.08) !important; backdrop-filter: blur(18px) !important; -webkit-backdrop-filter: blur(18px) !important; border: 1px solid rgba(255, 255, 255, 0.18) !important; border-radius: 20px; padding: 18px 20px; box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35); color: #ffffff !important;">
+                                <div class="row align-items-center g-2 g-md-3">
                                     <!-- Item 1: Location -->
-                                    <div class="col-6 col-md-3 col-xl-2">
-                                        <div class="d-flex align-items-center gap-2 gap-md-3">
+                                    <div class="col-12 col-sm-6 col-xl-2">
+                                        <div class="info-item-box d-flex align-items-center gap-2 gap-md-3">
                                             <div class="info-item-icon">
                                                 <i class="fa-solid fa-location-dot"></i>
                                             </div>
                                             <div class="text-start">
-                                                <span class="text-white-50 small d-block" style="font-size: 0.76rem;">Lokasi Kampus</span>
-                                                <h6 class="text-white mb-0 fw-700" style="font-size: 0.90rem;">Bangil, Pasuruan</h6>
+                                                <span class="text-white-50 small d-block" style="font-size: 0.74rem;">Lokasi Kampus</span>
+                                                <h6 class="text-white mb-0 fw-700" style="font-size: 0.88rem;">Bangil, Pasuruan</h6>
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- Item 2: Biometric Sync -->
-                                    <div class="col-6 col-md-3 col-xl-2">
-                                        <div class="d-flex align-items-center gap-2 gap-md-3">
+                                    <div class="col-12 col-sm-6 col-xl-2">
+                                        <div class="info-item-box d-flex align-items-center gap-2 gap-md-3">
                                             <div class="info-item-icon">
                                                 <i class="fa-solid fa-fingerprint"></i>
                                             </div>
                                             <div class="text-start">
-                                                <span class="text-white-50 small d-block" style="font-size: 0.76rem;">Mesin Presensi</span>
-                                                <h6 class="text-white mb-0 fw-700" style="font-size: 0.90rem;">Biometrik 3D Sync</h6>
+                                                <span class="text-white-50 small d-block" style="font-size: 0.74rem;">Mesin Presensi</span>
+                                                <h6 class="text-white mb-0 fw-700" style="font-size: 0.88rem;">Biometrik 3D Sync</h6>
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- Item 3: Civitas -->
-                                    <div class="col-6 col-md-3 col-xl-3">
-                                        <div class="d-flex align-items-center gap-2 gap-md-3">
+                                    <div class="col-12 col-sm-6 col-xl-3">
+                                        <div class="info-item-box d-flex align-items-center gap-2 gap-md-3">
                                             <div class="info-item-icon">
                                                 <i class="fa-solid fa-users-gear"></i>
                                             </div>
                                             <div class="text-start">
-                                                <span class="text-white-50 small d-block" style="font-size: 0.76rem;">Cakupan Pengguna</span>
-                                                <h6 class="text-white mb-0 fw-700" style="font-size: 0.90rem;">Dosen & Staf Banat</h6>
+                                                <span class="text-white-50 small d-block" style="font-size: 0.74rem;">Cakupan Pengguna</span>
+                                                <h6 class="text-white mb-0 fw-700" style="font-size: 0.88rem;">Dosen &amp; Staf Banat</h6>
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- Item 4: Mobile App Support -->
-                                    <div class="col-6 col-md-3 col-xl-2">
-                                        <div class="d-flex align-items-center gap-2 gap-md-3">
+                                    <div class="col-12 col-sm-6 col-xl-2">
+                                        <div class="info-item-box d-flex align-items-center gap-2 gap-md-3">
                                             <div class="info-item-icon">
                                                 <i class="fa-solid fa-mobile-screen-button"></i>
                                             </div>
                                             <div class="text-start">
-                                                <span class="text-white-50 small d-block" style="font-size: 0.76rem;">Aplikasi Mobile</span>
-                                                <h6 class="text-white mb-0 fw-700" style="font-size: 0.90rem;">Mobile App Support</h6>
+                                                <span class="text-white-50 small d-block" style="font-size: 0.74rem;">Aplikasi Mobile</span>
+                                                <h6 class="text-white mb-0 fw-700" style="font-size: 0.88rem;">Mobile App Support</h6>
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- Item 5: Action Buttons (Rekapitulasi & Laporan) -->
                                     <div class="col-12 col-xl-3 text-xl-end">
-                                        <div class="d-flex flex-column gap-2 ms-xl-auto" style="max-width: 220px;">
-                                            <a href="#data-absensi" class="btn-banat-primary w-100 py-2 text-center" style="font-size: 0.86rem;">
+                                        <div class="d-flex flex-row flex-xl-column gap-2 ms-xl-auto mt-2 mt-xl-0" style="max-width: 100%;">
+                                            <a href="#data-absensi" class="btn-banat-primary flex-grow-1 w-100 py-2 text-center" style="font-size: 0.86rem;">
                                                 <i class="fa-solid fa-clipboard-user me-1"></i> Rekapitulasi Presensi
                                             </a>
-                                            <a href="{{ url('/laporan') }}" class="btn-banat-outline w-100 py-2 text-center" 
+                                            <a href="{{ url('/laporan') }}" class="btn-banat-outline flex-grow-1 w-100 py-2 text-center" 
                                                style="background: rgba(255, 255, 255, 0.14) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.3) !important; font-size: 0.86rem; border-radius: 50px; text-decoration: none;">
                                                 <i class="fa-solid fa-file-invoice me-1"></i> Laporan
                                             </a>

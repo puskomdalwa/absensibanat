@@ -1,13 +1,51 @@
 @extends('layouts.admin.template')
 @section('title', 'Absensi')
 @section('content')
+    @php
+        $selectedDepartemen = null;
+        if(request('departemen')) {
+            $selectedDepartemen = \App\Models\Departemen::find(request('departemen'));
+        }
+    @endphp
+
+    <!-- BANAT LUXURY HERO HEADER -->
+    <div class="card mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, rgba(225, 29, 72, 0.05) 0%, rgba(251, 113, 133, 0.12) 100%); border-radius: 20px; border: 1px solid rgba(251, 113, 133, 0.25) !important;">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center justify-content-center" style="width: 54px; height: 54px; background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%); border-radius: 16px; box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35);">
+                        <i class="ti ti-checklist text-white" style="font-size: 1.8rem;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1 fw-bold text-heading">
+                            Absensi: {{ $selectedDepartemen ? $selectedDepartemen->nama : 'Semua Departemen' }}
+                        </h4>
+                        <p class="mb-0 text-muted small">
+                            Monitoring presensi civitas akademika Banat UII Dalwa secara real-time, akurat, dan terverifikasi
+                        </p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge" style="background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%); color: white; padding: 8px 16px; border-radius: 50px; font-weight: 600;">
+                        <i class="ti ti-calendar me-1"></i> {{ date('d M Y') }}
+                    </span>
+                    @if($selectedDepartemen)
+                        <span class="badge" style="background: rgba(225, 29, 72, 0.12); color: #e11d48; border: 1px solid rgba(225, 29, 72, 0.25); padding: 8px 16px; border-radius: 50px; font-weight: 600;">
+                            Kode: {{ $selectedDepartemen->kode ?? '-' }}
+                        </span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     @unless ($isStaff)
         @include('admin.absensi.import')
     @endunless
     @include('admin.absensi.filter')
     @include('admin.absensi.export')
 
-    <div class="card" id="card-user">
+    <div class="card shadow-sm border-0" id="card-user" style="border-radius: 20px; border: 1px solid rgba(251, 113, 133, 0.2) !important;">
         <div class="card-datatable table-responsive pt-0">
             <table class="datatables-basic table table-hover" id="table-2">
                 <thead>

@@ -691,14 +691,9 @@ footer.py-5 {
             <div class="dalwa-login-form-panel">
                 
                 <!-- Mobile-Only Minimalist Brand Header -->
-                <div class="d-lg-none text-center mb-3">
-                    <div class="d-inline-flex align-items-center justify-content-center p-2 rounded-3 bg-light shadow-sm mb-2" style="width: 46px; height: 46px;">
-                        <img src="{{ asset('home/assets/imgs/theme/logo.png') }}" alt="Dalwa Logo" style="max-height: 32px; object-fit: contain;">
-                    </div>
-                    <div>
-                        <div class="badge-mobile-portal">
-                            <i class="fa-solid fa-shield-halved me-1"></i> Presensi Banat • UII DALWA
-                        </div>
+                <div class="d-lg-none mb-2">
+                    <div class="badge-mobile-portal">
+                        <i class="fa-solid fa-shield-halved me-1"></i> Presensi Banat • UII DALWA
                     </div>
                 </div>
 

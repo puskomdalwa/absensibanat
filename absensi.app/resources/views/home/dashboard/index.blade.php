@@ -144,7 +144,7 @@
         </div>
 
         <!-- 3. Attendance Data Table Card -->
-        <div class="banat-dashboard-card p-4">
+        <div class="banat-dashboard-card p-3 p-md-4">
             <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--banat-border) !important;">
                 <div>
                     <h4 class="fw-800 mb-1" style="color: var(--banat-text-dark);">
@@ -154,30 +154,38 @@
                 </div>
             </div>
 
-            <div class="table-responsive banat-table-container">
-                <table id="table" class="table banat-table w-100">
-                    <thead>
-                        <tr>
-                            <th class="text-center" style="width: 50px;">No.</th>
-                            <th class="text-center">Tanggal</th>
-                            <th class="text-center">Jam Datang</th>
-                            <th class="text-center">Jam Pulang</th>
-                            <th class="text-center">Status Isi Keterangan</th>
-                            <th class="text-center" style="width: 140px;">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                    <tfoot>
-                        <tr>
-                            <th class="text-center" style="width: 50px;">No.</th>
-                            <th class="text-center">Tanggal</th>
-                            <th class="text-center">Jam Datang</th>
-                            <th class="text-center">Jam Pulang</th>
-                            <th class="text-center">Status Isi Keterangan</th>
-                            <th class="text-center">Aksi</th>
-                        </tr>
-                    </tfoot>
-                </table>
+            <!-- Mobile Swipe Hint -->
+            <div class="d-flex align-items-center gap-2 d-md-none text-muted small mb-2 py-1 px-2 rounded-3" style="background: rgba(225, 29, 72, 0.06); font-size: 0.78rem;">
+                <i class="fa-solid fa-arrows-left-right text-danger"></i> 
+                <span>Geser tabel ke kanan &amp; kiri untuk melihat kolom lengkap</span>
+            </div>
+
+            <div class="banat-table-container p-2 p-md-3">
+                <div class="table-responsive w-100" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                    <table id="table" class="table banat-table w-100 text-nowrap" style="min-width: 650px;">
+                        <thead>
+                            <tr>
+                                <th class="text-center" style="width: 50px;">No.</th>
+                                <th class="text-center">Tanggal</th>
+                                <th class="text-center">Jam Datang</th>
+                                <th class="text-center">Jam Pulang</th>
+                                <th class="text-center">Status Isi Keterangan</th>
+                                <th class="text-center" style="width: 140px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                        <tfoot>
+                            <tr>
+                                <th class="text-center" style="width: 50px;">No.</th>
+                                <th class="text-center">Tanggal</th>
+                                <th class="text-center">Jam Datang</th>
+                                <th class="text-center">Jam Pulang</th>
+                                <th class="text-center">Status Isi Keterangan</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
