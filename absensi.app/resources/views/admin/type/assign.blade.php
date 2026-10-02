@@ -1,15 +1,33 @@
 @extends('layouts.admin.template')
 @section('title', 'Assign Users - ' . $type->nama)
 @section('content')
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0">Assign Users to Type: <span class="text-primary">{{ $type->nama }}</span></h4>
-        <a href="{{ route('admin.type.index') }}" class="btn btn-outline-secondary">
-            <i class="ti ti-arrow-left me-1"></i> Back to List
-        </a>
+    <!-- Header Banner -->
+    <div class="card banat-page-header-card mb-4" style="background: linear-gradient(135deg, #180f24 0%, #2b143a 50%, #401535 100%) !important; border-radius: 20px !important; border: 1px solid rgba(251, 113, 133, 0.28) !important; box-shadow: 0 14px 35px rgba(18, 9, 28, 0.35) !important; color: #ffffff; position: relative; overflow: hidden;">
+        <div class="card-body p-4 position-relative" style="z-index: 2;">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width: 46px; height: 46px; border-radius: 14px; background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; box-shadow: 0 4px 14px rgba(225, 29, 72, 0.4); flex-shrink: 0;">
+                        <i class="ti ti-user-check"></i>
+                    </div>
+                    <div>
+                        <div class="badge mb-1 px-3 py-1" style="background: rgba(251, 113, 133, 0.22); color: #fda4af; border: 1px solid rgba(251, 113, 133, 0.4); font-size: 0.72rem; border-radius: 20px;">
+                            <i class="ti ti-tag me-1"></i> PENETAPAN TIPE CIVITAS
+                        </div>
+                        <h4 class="text-white fw-bold mb-0">Assign Users to Type: <span style="color: #fda4af;">{{ $type->nama }}</span></h4>
+                        <small class="text-white-50">Tentukan daftar pengguna civitas yang tergolong dalam tipe ini</small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ route('admin.type.index') }}" class="btn btn-sm btn-outline-light px-3 py-2" style="border-radius: 20px;">
+                        <i class="ti ti-arrow-left me-1"></i> Kembali ke Daftar
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="card">
-        <div class="card-body">
+    <div class="card" style="border-radius: 20px !important; border: 1px solid rgba(251, 113, 133, 0.22) !important; box-shadow: 0 8px 25px rgba(225, 29, 72, 0.05) !important;">
+        <div class="card-body p-4">
             <p class="text-muted">Select the users you want to assign to <strong>{{ $type->nama }}</strong>. Unchecked users will have their type set to <em>null</em>. Users already assigned to other types cannot be checked.</p>
             
             <div class="row align-items-center mb-4">

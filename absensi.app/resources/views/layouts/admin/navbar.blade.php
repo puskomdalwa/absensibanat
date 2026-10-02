@@ -45,7 +45,9 @@
                 </ul>
             </li>
             <!-- / Style Switcher-->
-            <button class="btn btn-primary mx-3">{{ \Carbon::now()->format('d/m/Y') }}</button>
+            <div class="banat-nav-date-pill mx-3 d-none d-sm-inline-flex">
+                <i class="ti ti-calendar me-1"></i> {{ \Carbon::now()->translatedFormat('l, d F Y') }}
+            </div>
             <!-- User -->
             <li class="nav-item navbar-dropdown dropdown-user dropdown">
                 <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
@@ -56,7 +58,7 @@
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li>
-                        <a class="dropdown-item mt-0" href="#">
+                        <a class="dropdown-item mt-0" href="{{ route('admin.profile.index') }}">
                             <div class="d-flex align-items-center">
                                 <div class="flex-shrink-0 me-2">
                                     <div class="avatar avatar-online">
@@ -75,7 +77,7 @@
                         <div class="dropdown-divider my-1 mx-n2"></div>
                     </li>
                     <li>
-                        <a class="dropdown-item" href="#">
+                        <a class="dropdown-item" href="{{ route('admin.profile.index') }}">
                             <i class="ti ti-user me-3 ti-md"></i><span class="align-middle">My
                                 Profile</span>
                         </a>

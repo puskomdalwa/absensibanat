@@ -1,5 +1,5 @@
 @extends('layouts.home.template')
-@section('title', 'Detail | Absensi UII Dalwa')
+@section('title', 'Detail Presensi - ' . $user->name . ' | Absensi UII Dalwa')
 @push('css')
 <style>
     .dt-layout-full {
@@ -13,150 +13,130 @@
             text-align: center;
         }
     }
-
 </style>
 @endpush
+
 @section('content')
 <div class="page-header breadcrumb-wrap">
     <div class="container">
         <div class="breadcrumb">
-            <a href="{{ route('root.index') }}" rel="nofollow">Home</a>
-            <span></span> Absensi <span></span> Detail
+            <a href="{{ route('root.index') }}" rel="nofollow"><i class="fi-rs-home mr-5"></i>Home</a>
+            <span></span> <a href="{{ route('absensi.index') }}">Absensi</a>
+            <span></span> Detail Presensi
         </div>
     </div>
 </div>
-<section class="mt-50 mb-50">
+
+<section class="mt-40 mb-50">
     <div class="container">
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="product-detail accordion-detail">
-                    <div class="row mb-50">
-                        <div class="col-md-6 col-sm-12 col-xs-12">
-                            <div class="detail-gallery d-flex justify-content-center bg-brand h-100 border-radius-10">
-                                <img src="{{ $user->photo ? asset('photo') . '/'.$user->photo : asset('home/assets/imgs/theme/user.png') }}" alt="User Profile" />
-                            </div>
-                            <!-- End Gallery -->
-                        </div>
-                        <div class="col-md-6 col-sm-12 col-xs-12">
-                            <div class="detail-info mt-3 mt-md-0">
-                                <h2 class="title-detail">
-                                    {{ $user->name }}
-                                </h2>
-                                <div class="product-detail-rating">
-                                    <div class="pro-details-brand">
-                                        <span>
-                                            Departemen:
-                                            <a href="products.html">{{ $user->departemen->nama }}</a></span>
-                                    </div>
-                                    <div class="product-rate-cover text-end">
-                                        <span class="font-small ml-5 text-muted">
-                                            {{ $user->absensi->count() }} Absensi</span>
-                                    </div>
-                                </div>
-                                <div class="bt-1 border-color-1 mt-15 mb-15"></div>
-                                <div class="short-desc mb-30 px-4">
-                                    <p class="text-bold">
-                                        <li>ID : {{ $user->id }}</li>
-                                        <li>Nama : {{ $user->name }}</li>
-                                        <li>Departemen : {{ $user->departemen->nama }}</li>
-                                        <li>Jenis Kelamin : {{ $user->jenis_kelamin }}</li>
-                                    </p>
-                                </div>
-
-                                <ul class="product-meta font-xs color-grey mt-50">
-                                    <li class="mb-5">Departemen: <a href="#">{{ $user->departemen->nama }}</a>
-                                    </li>
-                                    <li class="mb-5">
-                                        Role: <a href="#" rel="tag">{{ $user->role->akses }}</a>,
-                                    </li>
-                                </ul>
-                            </div>
-                            <!-- Detail Info -->
-                        </div>
+        <!-- User Profile Card -->
+        <div class="banat-dashboard-card mb-4">
+            <div class="d-flex flex-column flex-md-row align-items-center gap-4">
+                <div class="position-relative">
+                    <div class="dashboard-avatar-ring">
+                        <img src="{{ $user->photo ? asset('photo') . '/'.$user->photo : asset('home/assets/imgs/theme/user.png') }}" 
+                             alt="{{ $user->name }}" 
+                             style="width: 110px; height: 110px; object-fit: cover; border-radius: 50%;">
                     </div>
-                    <div class="row">
-                        <div class="col-12 m-auto entry-main-content">
-                            <h2 class="section-title style-1 mb-30">Absensi</h2>
-                            <div class="mb-3">
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <label for="startDate" class="form-label">Tanggal Mulai</label>
-                                        <input type="date" class="form-control" id="startDate" name="startDate">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="endDate" class="form-label">Tanggal Akhir</label>
-                                        <input type="date" class="form-control" id="endDate" name="endDate">
-                                    </div>
-                                    <div class="col-md-4 d-flex align-items-end">
-                                        <button type="button" id="filterButton" class="btn btn-primary w-100">Filter</button>
-                                    </div>
-                                    <div class="col-md-12 mt-3">
-                                        <button type="button" id="resetButton" class="btn btn-secondary w-100">Tampilkan
-                                            Semua Tanggal</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="table-responsive">
-                                <table id="example" class="table table-striped table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center">No.</th>
-                                            <th class="text-center">Tanggal</th>
-                                            <th class="text-center">Jam Datang</th>
-                                            <th class="text-center">Jam Pulang</th>
-                                            <th class="text-center">Status Isi Keterangan</th>
-                                            <th class="text-center">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-
-                                    </tbody>
-                                    <tfoot>
-                                        <tr>
-                                            <th class="text-center" style="width: 5px">No.</th>
-                                            <th class="text-center">Tanggal</th>
-                                            <th class="text-center">Jam</th>
-                                            <th class="text-center">Status Isi Keterangan</th>
-                                            <th class="text-center">Aksi</th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                        </div>
-                        <div class="social-icons single-share">
-                            <ul class="text-grey-5 d-inline-block">
-                                <li><strong class="mr-10">Bagikan :</strong></li>
-                                <li>
-                                    <a href="#" id="copyButton" class="hover-up" data-bs-toggle="tooltip" data-bs-placement="top" title="Copy">
-                                        <i class="fi-rs-copy"></i>
-                                    </a>
-                                </li>
-
-                            </ul>
-                        </div>
+                    <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-success p-2 border border-2 border-white">
+                        <span class="visually-hidden">Active</span>
+                    </span>
+                </div>
+                <div class="flex-grow-1 text-center text-md-start">
+                    <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
+                        <h3 class="dashboard-user-name mb-0">{{ $user->name }}</h3>
+                        <span class="badge-banat-primary">{{ $user->role->akses ?? 'Civitas' }}</span>
+                        <span class="badge rounded-pill" style="background: rgba(14, 165, 233, 0.15); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.3);">
+                            {{ $user->departemen->nama ?? '-' }}
+                        </span>
+                    </div>
+                    <div class="d-flex flex-wrap justify-content-center justify-content-md-start gap-3 text-muted font-sm mb-3">
+                        <span><i class="fi-rs-id-badge mr-5"></i>ID Civitas: <strong style="color: var(--banat-text-dark);">{{ $user->id }}</strong></span>
+                        <span><i class="fi-rs-user mr-5"></i>Jenis Kelamin: <strong style="color: var(--banat-text-dark);">{{ $user->jenis_kelamin }}</strong></span>
+                        <span><i class="fi-rs-check mr-5"></i>Total Presensi: <strong style="color: var(--banat-text-dark);">{{ $user->absensi->count() }} Hari</strong></span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
+                        <a href="#" id="copyButton" class="btn btn-sm btn-banat-outline" data-bs-toggle="tooltip" data-bs-placement="top" title="Salin Tautan Profil">
+                            <i class="fi-rs-copy mr-5"></i> Salin URL Profil
+                        </a>
+                        <a href="{{ route('absensi.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3" style="display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fi-rs-arrow-left"></i> Kembali ke Daftar
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- Attendance History Card -->
+        <div class="banat-dashboard-card mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4 pb-3" style="border-bottom: 1px solid var(--banat-border);">
+                <div>
+                    <h4 class="mb-1" style="font-weight: 700; color: var(--banat-text-dark);">
+                        <i class="fi-rs-calendar mr-5" style="color: var(--banat-primary);"></i> Riwayat Log Presensi
+                    </h4>
+                    <p class="text-muted font-sm mb-0">Rincian catatan kehadiran, jam kedatangan, kepulangan, dan surat keterangan.</p>
+                </div>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label for="startDate" class="form-label font-sm fw-bold" style="color: var(--banat-text-dark);">Tanggal Mulai</label>
+                    <input type="date" class="form-control form-control-banat" id="startDate" name="startDate">
+                </div>
+                <div class="col-md-4">
+                    <label for="endDate" class="form-label font-sm fw-bold" style="color: var(--banat-text-dark);">Tanggal Akhir</label>
+                    <input type="date" class="form-control form-control-banat" id="endDate" name="endDate">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" id="filterButton" class="btn btn-banat-primary w-100" style="height: 48px;">
+                        <i class="fi-rs-filter mr-5"></i> Filter
+                    </button>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" id="resetButton" class="btn btn-outline-secondary w-100 rounded-pill" style="height: 48px; font-weight: 600;">
+                        <i class="fi-rs-refresh mr-5"></i> Semua
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="banat-table-container">
+                <div class="table-responsive">
+                    <table id="example" class="table banat-table w-100">
+                        <thead>
+                            <tr>
+                                <th class="text-center" style="width: 50px;">No.</th>
+                                <th class="text-center">Tanggal</th>
+                                <th class="text-center">Jam Datang</th>
+                                <th class="text-center">Jam Pulang</th>
+                                <th class="text-center">Status Keterangan</th>
+                                <th class="text-center" style="width: 100px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
-<!-- Modal -->
+<!-- Modal Keterangan -->
 <div class="modal fade" id="modal-keterangan" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="title_edit">Modal title</h5>
+        <div class="modal-content banat-modal-content">
+            <div class="modal-header banat-modal-header">
+                <h5 class="modal-title fw-bold" id="title_edit" style="color: var(--banat-text-dark);">Detail Keterangan</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <ol id="list-keterangan" class="list-group list-group-numbered">
-
+            <div class="modal-body p-4">
+                <ol id="list-keterangan" class="list-group list-group-numbered mb-0">
                 </ol>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            <div class="modal-footer banat-modal-footer">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
@@ -175,17 +155,17 @@
         var tooltip = new bootstrap.Tooltip(copyButton);
 
         copyButton.addEventListener("click", function(e) {
-            e.preventDefault(); // Mencegah navigasi default
-            let currentURL = "{{ route('absensi.show', ['user' => $user]) }}"; // Ambil URL saat ini
+            e.preventDefault();
+            let currentURL = "{{ route('absensi.show', ['user' => $user]) }}";
 
             navigator.clipboard.writeText(currentURL).then(function() {
                 copyButton.setAttribute("title", "Copied!");
-                tooltip.dispose(); // Hapus tooltip lama
-                tooltip = new bootstrap.Tooltip(copyButton); // Buat tooltip baru
-                tooltip.show(); // Tampilkan tooltip
+                tooltip.dispose();
+                tooltip = new bootstrap.Tooltip(copyButton);
+                tooltip.show();
 
                 setTimeout(() => {
-                    copyButton.setAttribute("title", "Copy URL");
+                    copyButton.setAttribute("title", "Salin URL Profil");
                     tooltip.dispose();
                     tooltip = new bootstrap.Tooltip(copyButton);
                 }, 1500);
@@ -193,65 +173,62 @@
         });
 
         let dataTable = $("#example").DataTable({
-            autoWidth: true
-            , processing: true
-            , serverSide: true
-            , search: {
+            autoWidth: true,
+            processing: true,
+            serverSide: true,
+            search: {
                 return: true
-            , }
-            , ajax: {
-                url: "{{ route('absensi.data', ['user' => $user]) }}"
-                , method: "GET"
-                , data: function(d) {
+            },
+            ajax: {
+                url: "{{ route('absensi.data', ['user' => $user]) }}",
+                method: "GET",
+                data: function(d) {
                     d.startDate = $("#startDate").val();
                     d.endDate = $("#endDate").val();
                 }
-            , }
-            , columns: [{
-                    class: "text-center"
-                    , data: "tgl_absen"
-                    , render: function(data, type, row, meta) {
+            },
+            columns: [
+                {
+                    class: "text-center",
+                    data: "tgl_absen",
+                    render: function(data, type, row, meta) {
                         return meta.row + meta.settings._iDisplayStart + 1;
                     }
-                , }, {
-                    class: "text-center"
-                    , data: "tgl_absen"
-                    , name: "tgl_absen"
-                , }
-                , {
-                    class: "text-center"
-                    , data: "pagi"
-                    , name: "pagi"
-                , }
-                , {
-                    class: "text-center"
-                    , data: "sore"
-                    , name: "sore"
-                , }
-                , {
-                    class: "text-center"
-                    , data: "has_keterangan"
-                    , name: "has_keterangan"
-                , }
-                , {
-                    data: "action"
-                    , name: "action"
-                    , class: "text-center"
-                    , searchable: false
-                    , orderable: false
-                , }
-            , ]
-            , order: [
+                },
+                {
+                    class: "text-center",
+                    data: "tgl_absen",
+                    name: "tgl_absen"
+                },
+                {
+                    class: "text-center",
+                    data: "pagi",
+                    name: "pagi"
+                },
+                {
+                    class: "text-center",
+                    data: "sore",
+                    name: "sore"
+                },
+                {
+                    class: "text-center",
+                    data: "has_keterangan",
+                    name: "has_keterangan"
+                },
+                {
+                    data: "action",
+                    name: "action",
+                    class: "text-center",
+                    searchable: false,
+                    orderable: false
+                }
+            ],
+            order: [
                 [0, "desc"]
             ]
-        , });
-
-        $('#startDate').change(function(e) {
-            e.preventDefault();
-            dataTable.ajax.reload(null, false);
         });
 
-        $('#endDate').change(function(e) {
+        $('#startDate, #endDate').change(function(e) {
             e.preventDefault();
             dataTable.ajax.reload(null, false);
         });
@@ -277,10 +254,10 @@
             modal.find('#id_edit').val(button.data('id'));
             modal.find('#keterangan_edit').val('');
 
-            modal.find('#list-keterangan').html('Loading...');
+            modal.find('#list-keterangan').html('<div class="text-center py-3"><div class="spinner-border text-danger spinner-border-sm" role="status"></div> Loading...</div>');
 
             loadKeterangan(button.data('id'));
-        })
+        });
 
         function loadKeterangan(absensiId) {
             let route = "{{ route('absensi.keterangan', ['user' => $user, 'absensi' => ':id']) }}";
@@ -288,32 +265,27 @@
             $.get(route)
                 .done(function(response) {
                     if (response.length <= 0) {
-                        $('#list-keterangan').html('Tidak ada data keterangan');
+                        $('#list-keterangan').html('<li class="list-group-item text-center text-muted">Tidak ada data keterangan</li>');
                         return;
                     }
                     let content = ``;
                     response.forEach(element => {
                         content += `
-                                <li class="mb-1">
-                                    <div 
-                                        style="cursor: pointer"
-                                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-start">
-                                        <div class="ms-2 me-auto">
-                                            <div class="fw-bold">${element.waktu}</div>${element.keterangan}
-                                        </div>
-                                    </div>
-                                    <div id="edit-keterangan-${element.id}"></div>
-                                </li>
-                                `;
+                            <li class="mb-2 list-group-item d-flex justify-content-between align-items-start rounded">
+                                <div class="ms-2 me-auto">
+                                    <div class="fw-bold" style="color: var(--banat-primary);">${element.waktu}</div>
+                                    <div>${element.keterangan}</div>
+                                </div>
+                            </li>
+                        `;
                     });
                     $('#list-keterangan').html(content);
                 })
                 .fail(function(xhr) {
                     console.log(xhr);
-                    $('#list-keterangan').html('Error');
+                    $('#list-keterangan').html('<li class="list-group-item text-danger text-center">Gagal memuat keterangan</li>');
                 });
         }
     });
-
 </script>
 @endpush

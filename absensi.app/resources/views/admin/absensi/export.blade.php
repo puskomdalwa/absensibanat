@@ -1,5 +1,8 @@
-<div class="d-flex justify-content-end mb-5">
-    <button class="btn btn-primary" onclick="downloadExcel()">Download Excel</button>
+<div class="d-flex justify-content-end mb-4">
+    <button class="btn btn-primary d-flex align-items-center gap-2 px-4 py-2" onclick="downloadExcel()">
+        <i class="ti ti-file-spreadsheet fs-5"></i>
+        <span>Download Excel Rekap</span>
+    </button>
 </div>
 
 @push('scripts')

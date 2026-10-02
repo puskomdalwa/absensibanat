@@ -24,185 +24,241 @@
 @section('content')
 <div class="page-header breadcrumb-wrap">
     <div class="container">
-        <div class="breadcrumb">
-            <a href="{{ route('root.index') }}" rel="nofollow">Home</a>
-            <span></span> Dashboard
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="breadcrumb mb-0">
+                <a href="{{ route('root.index') }}" rel="nofollow">
+                    <i class="fa-solid fa-house-chimney me-1"></i> Home
+                </a>
+                <span></span> <span class="active" style="color: var(--banat-text-dark); font-weight: 600;">Dashboard Civitas</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge" style="background: rgba(224, 82, 117, 0.12); color: var(--banat-primary); border: 1px solid var(--banat-border); border-radius: 30px; padding: 6px 14px; font-weight: 600; font-size: 0.8rem;">
+                    <i class="fa-solid fa-circle text-success me-1" style="font-size: 8px;"></i> Presensi Online Dalwa
+                </span>
+            </div>
         </div>
     </div>
 </div>
-<section class="mt-50 mb-50">
+
+<section class="py-4 py-md-5 position-relative" style="background: var(--banat-bg-soft); min-height: 80vh;">
     <div class="container">
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="product-detail accordion-detail">
-                    <div class="row mb-50">
-                        <div class="col-md-6 col-sm-12 col-xs-12">
-                            <div class="detail-gallery d-flex justify-content-center bg-brand h-100 border-radius-10">
-                                <img src="{{ $user->photo ? asset('photo') . '/'.$user->photo : asset('home/assets/imgs/theme/user.png') }}" alt="User Profile" />
-                            </div>
-                            <!-- End Gallery -->
+        <!-- 1. User Profile Glassmorphism Card -->
+        <div class="banat-dashboard-card mb-4 p-4 p-md-5">
+            <div class="row align-items-center g-4">
+                <!-- Avatar Col -->
+                <div class="col-12 col-md-auto text-center text-md-start">
+                    <div class="dashboard-avatar-wrapper">
+                        <div class="avatar-ring-wrapper">
+                            <img src="{{ $user->photo ? asset('photo') . '/'.$user->photo : asset('home/assets/imgs/theme/user.png') }}" 
+                                 alt="{{ $user->name }}" 
+                                 class="dashboard-avatar-img rounded-circle" />
                         </div>
-                        <div class="col-md-6 col-sm-12 col-xs-12">
-                            <div class="detail-info mt-3 mt-md-0">
-                                <h2 class="title-detail">
-                                    {{ $user->name }}
-                                </h2>
-                                <div class="product-detail-rating">
-                                    <div class="pro-details-brand">
-                                        <span>
-                                            Departemen:
-                                            <a href="products.html">{{ $user->departemen->nama }}</a></span>
-                                    </div>
-                                    <div class="product-rate-cover text-end">
-                                        <span class="font-small ml-5 text-muted">
-                                            {{ $user->absensi->count() }} Absensi</span>
-                                    </div>
-                                </div>
-                                <div class="bt-1 border-color-1 mt-15 mb-15"></div>
-                                <div class="short-desc mb-30 px-4">
-                                    <p class="text-bold">
-                                        <li>ID : {{ $user->id }} </li>
-                                        <li>Nama : {{ $user->name }}</li>
-                                        <li>Departemen : {{ $user->departemen->nama }}</li>
-                                        <li>Jenis Kelamin : {{ $user->jenis_kelamin }}</li>
-                                    </p>
-                                </div>
-
-                                <ul class="product-meta font-xs color-grey mt-50">
-                                    <li class="mb-5">Departemen: <a href="#">{{ $user->departemen->nama }}</a>
-                                    </li>
-                                    <li class="mb-5">
-                                        Role: <a href="#" rel="tag">{{ $user->role->akses }}</a>,
-                                    </li>
-                                </ul>
-                            </div>
-                            <!-- Detail Info -->
-                        </div>
+                        <span class="badge-status-dot" title="Status: Aktif"></span>
                     </div>
-                    <div class="row">
-                        <div class="col-12 m-auto entry-main-content">
-                            <h2 class="section-title style-1 mb-30">Absensi</h2>
-                            <div class="mb-3">
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <label for="startDate" class="form-label">Tanggal Mulai</label>
-                                        <input type="date" class="form-control" id="startDate" name="startDate">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="endDate" class="form-label">Tanggal Akhir</label>
-                                        <input type="date" class="form-control" id="endDate" name="endDate">
-                                    </div>
-                                    <div class="col-md-4 d-flex align-items-end">
-                                        <button type="button" id="filterButton" class="btn btn-primary w-100">Filter</button>
-                                    </div>
-                                    <div class="col-md-12 mt-3">
-                                        <button type="button" id="resetButton" class="btn btn-secondary w-100">Tampilkan
-                                            Semua Tanggal</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="table-responsive">
-                                <table id="table" class="table table-striped table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center">No.</th>
-                                            <th class="text-center">Tanggal</th>
-                                            <th class="text-center">Jam Datang</th>
-                                            <th class="text-center">Jam Pulang</th>
-                                            <th class="text-center">Status Isi Keterangan</th>
-                                            <th class="text-center">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                </div>
 
-                                    </tbody>
-                                    <tfoot>
-                                        <tr>
-                                            <th class="text-center" style="width: 5px">No.</th>
-                                            <th class="text-center">Tanggal</th>
-                                            <th class="text-center">Jam Datang</th>
-                                            <th class="text-center">Jam Pulang</th>
-                                            <th class="text-center">Status Isi Keterangan</th>
-                                            <th class="text-center">Aksi</th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                        </div>
-                        <div class="social-icons single-share">
-                            <ul class="text-grey-5 d-inline-block">
-                                <li><strong class="mr-10">Bagikan :</strong></li>
-                                <li>
-                                    <a href="#" id="copyButton" class="hover-up" data-bs-toggle="tooltip" data-bs-placement="top" title="Copy">
-                                        <i class="fi-rs-copy"></i>
-                                    </a>
-                                </li>
-
-                            </ul>
-                        </div>
+                <!-- Info Col -->
+                <div class="col-12 col-md text-center text-md-start">
+                    <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
+                        <h2 class="fw-800 mb-0 dashboard-user-name">{{ $user->name }}</h2>
+                        <span class="badge badge-role">
+                            <i class="fa-solid fa-shield-halved me-1"></i> {{ ucfirst($user->role->akses ?? 'User') }}
+                        </span>
+                        @if($user->departemen)
+                            <span class="badge badge-dept">
+                                <i class="fa-solid fa-building-user me-1"></i> {{ $user->departemen->nama }}
+                            </span>
+                        @endif
                     </div>
+
+                    <!-- Meta Tags Row -->
+                    <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2 gap-sm-3 text-muted small mt-2">
+                        <span style="color: var(--banat-text-medium);">
+                            <i class="fa-solid fa-id-badge text-danger me-1"></i> ID: <strong>#{{ $user->id }}</strong>
+                        </span>
+                        <span class="d-none d-sm-inline" style="color: var(--banat-border);">•</span>
+                        <span style="color: var(--banat-text-medium);">
+                            <i class="fa-solid fa-venus-mars text-danger me-1"></i> {{ $user->jenis_kelamin ?? 'Laki-laki' }}
+                        </span>
+                        <span class="d-none d-sm-inline" style="color: var(--banat-border);">•</span>
+                        <span style="color: var(--banat-text-medium);">
+                            <i class="fa-solid fa-envelope text-danger me-1"></i> {{ $user->email ?? $user->username }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Quick Stats & Share Col -->
+                <div class="col-12 col-lg-auto text-center text-lg-end">
+                    <div class="d-flex flex-row flex-lg-column align-items-center align-items-lg-end justify-content-center gap-3">
+                        <div class="dashboard-stat-pill">
+                            <div class="stat-pill-icon">
+                                <i class="fa-solid fa-clipboard-check"></i>
+                            </div>
+                            <div class="text-start">
+                                <span class="stat-pill-num fw-800 d-block">{{ $user->absensi->count() }}</span>
+                                <span class="stat-pill-label">Total Presensi</span>
+                            </div>
+                        </div>
+
+                        <button type="button" id="copyButton" class="btn-banat-outline btn-sm py-2 px-3" data-bs-toggle="tooltip" data-bs-placement="top" title="Salin Tautan Profil">
+                            <i class="fa-solid fa-share-nodes me-1"></i> Bagikan Profil
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Filter Rentang Tanggal Card -->
+        <div class="banat-dashboard-card mb-4 p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                <h5 class="fw-700 mb-0" style="color: var(--banat-text-dark);">
+                    <i class="fa-solid fa-filter me-2" style="color: var(--banat-primary);"></i> Filter Rentang Tanggal
+                </h5>
+                <span class="text-muted small">Pilih rentang tanggal untuk menyaring data presensi</span>
+            </div>
+
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-sm-6 col-md-4">
+                    <label for="startDate" class="form-label small fw-600 mb-1" style="color: var(--banat-text-medium);">
+                        <i class="fa-regular fa-calendar me-1 text-danger"></i> Tanggal Mulai
+                    </label>
+                    <input type="date" class="form-control form-control-banat" id="startDate" name="startDate">
+                </div>
+                <div class="col-12 col-sm-6 col-md-4">
+                    <label for="endDate" class="form-label small fw-600 mb-1" style="color: var(--banat-text-medium);">
+                        <i class="fa-regular fa-calendar-check me-1 text-danger"></i> Tanggal Akhir
+                    </label>
+                    <input type="date" class="form-control form-control-banat" id="endDate" name="endDate">
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="d-flex gap-2">
+                        <button type="button" id="filterButton" class="btn-banat-primary flex-grow-1 py-2" style="font-size: 0.9rem;">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i> Filter
+                        </button>
+                        <button type="button" id="resetButton" class="btn-banat-outline flex-grow-1 py-2" style="font-size: 0.9rem;">
+                            <i class="fa-solid fa-rotate-left me-1"></i> Semua
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Attendance Data Table Card -->
+        <div class="banat-dashboard-card p-3 p-md-4">
+            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style="border-color: var(--banat-border) !important;">
+                <div>
+                    <h4 class="fw-800 mb-1" style="color: var(--banat-text-dark);">
+                        <i class="fa-solid fa-calendar-days me-2" style="color: var(--banat-primary);"></i> Catatan Presensi Saya
+                    </h4>
+                    <p class="text-muted small mb-0">Daftar waktu kehadiran datang, pulang, dan catatan keterangan presensi</p>
+                </div>
+            </div>
+
+            <!-- Mobile Swipe Hint -->
+            <div class="d-flex align-items-center gap-2 d-md-none text-muted small mb-2 py-1 px-2 rounded-3" style="background: rgba(225, 29, 72, 0.06); font-size: 0.78rem;">
+                <i class="fa-solid fa-arrows-left-right text-danger"></i> 
+                <span>Geser tabel ke kanan &amp; kiri untuk melihat kolom lengkap</span>
+            </div>
+
+            <div class="banat-table-container p-2 p-md-3">
+                <div class="table-responsive w-100" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                    <table id="table" class="table banat-table w-100 text-nowrap" style="min-width: 650px;">
+                        <thead>
+                            <tr>
+                                <th class="text-center" style="width: 50px;">No.</th>
+                                <th class="text-center">Tanggal</th>
+                                <th class="text-center">Jam Datang</th>
+                                <th class="text-center">Jam Pulang</th>
+                                <th class="text-center">Status Isi Keterangan</th>
+                                <th class="text-center" style="width: 140px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                        <tfoot>
+                            <tr>
+                                <th class="text-center" style="width: 50px;">No.</th>
+                                <th class="text-center">Tanggal</th>
+                                <th class="text-center">Jam Datang</th>
+                                <th class="text-center">Jam Pulang</th>
+                                <th class="text-center">Status Isi Keterangan</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Modal -->
+<!-- Modal Keterangan Form -->
 <div class="modal fade" id="modal-keterangan" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="title_edit">Modal title</h5>
+        <div class="modal-content banat-modal-content">
+            <div class="modal-header banat-modal-header">
+                <h5 class="modal-title fw-700" id="title_edit">Isi Keterangan Presensi</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 <form id="form-keterangan" method="POST" action="{{ route('dashboard.store') }}">
                     @csrf
                     <input type="hidden" name="absensi_id" id="id_edit">
-                    <div class="">
-                        <label for="waktu" class="col-form-label">Waktu:</label>
-                        <input type="time" class="form-control" id="waktu_edit" name="waktu" required placeholder="Masukkan waktu kehadiran" />
+                    <div class="mb-3">
+                        <label for="waktu_edit" class="form-label small fw-600" style="color: var(--banat-text-medium);">
+                            <i class="fa-regular fa-clock me-1 text-danger"></i> Waktu Kehadiran:
+                        </label>
+                        <input type="time" class="form-control form-control-banat" id="waktu_edit" name="waktu" required />
                     </div>
-                    <div class="">
-                        <label for="keterangan" class="col-form-label">Keterangan:</label>
-                        <textarea required type="text" class="form-control" id="keterangan_edit" style="min-height: 75px;" name="keterangan" rows="6" placeholder="Masukkan keterangan kehadiran, seperti alasan ketidakhadiran atau catatan penting lainnya."></textarea>
+                    <div class="mb-3">
+                        <label for="keterangan_edit" class="form-label small fw-600" style="color: var(--banat-text-medium);">
+                            <i class="fa-regular fa-pen-to-square me-1 text-danger"></i> Keterangan / Catatan Kegiatan:
+                        </label>
+                        <textarea required class="form-control form-control-banat" id="keterangan_edit" style="min-height: 85px;" name="keterangan" rows="4" placeholder="Masukkan keterangan kehadiran atau catatan kegiatan..."></textarea>
                     </div>
-                    <div class="alert alert-info mt-2" role="alert">
-                        Mohon isi keterangan dengan jelas agar dapat membantu kami memahami segala kondisi.
+                    <div class="alert banat-alert-info mb-3 d-flex align-items-center gap-2 small p-3">
+                        <i class="fa-solid fa-circle-info fa-lg"></i>
+                        <span>Mohon isi keterangan dengan jelas agar dapat membantu kami memahami segala kondisi.</span>
                     </div>
-                    <div class="d-flex justify-content-end my-3">
-                        <button type="submit" class="btn btn-primary w-100">Simpan</button>
-                    </div>
+                    <button type="submit" class="btn-banat-primary w-100 py-2">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Catatan
+                    </button>
                 </form>
 
-                <ol id="list-keterangan" class="list-group list-group-numbered">
-
-                </ol>
-                <div class="alert alert-info mt-2" role="alert">
-                    Klik list keterangan di atas untuk mengedit keterangan.
+                <div class="mt-4 pt-3 border-top" style="border-color: var(--banat-border) !important;">
+                    <h6 class="fw-700 small mb-2" style="color: var(--banat-text-dark);">
+                        <i class="fa-solid fa-list-check me-1 text-danger"></i> Riwayat Keterangan Tercatat:
+                    </h6>
+                    <ol id="list-keterangan" class="list-group list-group-numbered mb-2"></ol>
+                    <div class="alert banat-alert-info small py-2 px-3 mb-0">
+                        <i class="fa-solid fa-hand-pointer me-1"></i> Klik item keterangan di atas untuk mengeditnya.
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            <div class="modal-footer banat-modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal -->
+<!-- Modal Keterangan Lengkap -->
 <div class="modal fade" id="keteranganModal" tabindex="-1" aria-labelledby="keteranganModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="keteranganModalLabel">Keterangan Lengkap</h5>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content banat-modal-content">
+            <div class="modal-header banat-modal-header">
+                <h5 class="modal-title fw-700" id="keteranganModalLabel">
+                    <i class="fa-solid fa-file-lines me-2 text-danger"></i> Keterangan Lengkap
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
-            <div class="modal-body" id="modalKeteranganBody">
+            <div class="modal-body p-4" id="modalKeteranganBody" style="line-height: 1.7; color: var(--banat-text-medium);">
+            </div>
+            <div class="modal-footer banat-modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
 </div>
-
 @endsection
 
 @push('scripts')
@@ -441,18 +497,30 @@
                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="absensi_id" value="${absensi_id}">
                 <input type="hidden" name="id" value="${id}">
-                <div class="my-1">
-                    <input type="time" class="form-control" name="waktu"
-                        placeholder="Masukkan waktu kehadiran" value="${waktu}" />
+                <div class="my-2">
+                    <label class="form-label small fw-600 mb-1" style="color: var(--banat-text-medium);">
+                        <i class="fa-regular fa-clock me-1 text-danger"></i> Waktu:
+                    </label>
+                    <input type="time" class="form-control form-control-banat" name="waktu"
+                        placeholder="Masukkan waktu kehadiran" value="${waktu}" required />
                 </div>
-                <div class="mb-1">
-                    <textarea type="text" class="form-control" name="keterangan" style="min-height: 150px;"
-                        placeholder="Masukkan keterangan kehadiran, seperti alasan ketidakhadiran atau catatan penting lainnya." >${keterangan}</textarea>
+                <div class="mb-2">
+                    <label class="form-label small fw-600 mb-1" style="color: var(--banat-text-medium);">
+                        <i class="fa-regular fa-pen-to-square me-1 text-danger"></i> Keterangan:
+                    </label>
+                    <textarea class="form-control form-control-banat" name="keterangan" style="min-height: 100px;"
+                        placeholder="Masukkan keterangan kehadiran..." required>${keterangan}</textarea>
                 </div>
                 <div class="d-flex flex-wrap gap-2 justify-content-end mb-3">
-                    <button onclick="deleteKeterangan('#edit-keterangan-${id} form')" type="button" class="btn btn-danger bg-danger border-0 flex-grow-1">Hapus</button>
-                    <button onclick="batalkanEditKeterangan(${id})" type="button" class="btn btn-warning bg-warning border-0 flex-grow-1">Batalkan Edit</button>
-                    <button type="submit" class="btn btn-primary flex-grow-1">Simpan Edit</button>
+                    <button onclick="deleteKeterangan('#edit-keterangan-${id} form')" type="button" class="btn btn-sm btn-danger py-2 px-3 border-0 flex-grow-1" style="border-radius: 30px;">
+                        <i class="fa-solid fa-trash-can me-1"></i> Hapus
+                    </button>
+                    <button onclick="batalkanEditKeterangan(${id})" type="button" class="btn btn-sm btn-secondary py-2 px-3 border-0 flex-grow-1" style="border-radius: 30px;">
+                        <i class="fa-solid fa-xmark me-1"></i> Batal
+                    </button>
+                    <button type="submit" class="btn btn-sm btn-banat-primary py-2 px-3 flex-grow-1">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Edit
+                    </button>
                 </div>
 
             </form>
