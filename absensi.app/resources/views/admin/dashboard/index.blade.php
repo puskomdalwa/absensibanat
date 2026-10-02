@@ -1004,22 +1004,6 @@
                     data: "name",
                     name: "name",
                     className: "align-middle",
-                    render: function(data, type, full, meta) {
-                        var firstLetter = data ? data.trim().charAt(0).toUpperCase() : 'U';
-                        return `
-                            <div class="d-flex align-items-center">
-                                <div class="avatar avatar-sm me-3 flex-shrink-0">
-                                    <span class="avatar-initial rounded-circle fw-bold banat-avatar-circle">
-                                        ${firstLetter}
-                                    </span>
-                                </div>
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold text-heading banat-table-name">${data || '-'}</span>
-                                    <small class="text-muted" style="font-size: 0.74rem;">Civitas Banat</small>
-                                </div>
-                            </div>
-                        `;
-                    }
                 },
                 {
                     data: "total_kehadiran",
