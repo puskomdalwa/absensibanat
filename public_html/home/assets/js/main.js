@@ -26,12 +26,51 @@
     });
 
     /*------ ScrollUp -------- */
+    // Only show scrollUp button starting from section 2 (hidden at top section)
+    var getScrollThreshold = function () {
+        var hero = document.querySelector('.hero-curved-wrapper') || 
+                   document.querySelector('.hero-proceeding-card');
+        if (hero) {
+            // Trigger right when user exits Section 1 and enters Section 2
+            var heroBottom = (hero.offsetTop || 0) + hero.offsetHeight;
+            return Math.max(heroBottom - 100, 450);
+        }
+        return 400;
+    };
+
     $.scrollUp({
+        scrollDistance: getScrollThreshold(),
         scrollText: '<i class="fi-rs-arrow-up"></i>',
         easingType: "linear",
         scrollSpeed: 900,
         animation: "fade",
+        animationSpeed: 250,
     });
+
+    // Dynamic threshold watcher to guarantee hiding at top of page / section 1
+    function checkScrollUpSection() {
+        var hero = document.querySelector('.hero-curved-wrapper') || 
+                   document.querySelector('.hero-proceeding-card');
+        var threshold = 400;
+        if (hero) {
+            threshold = Math.max((hero.offsetTop || 0) + hero.offsetHeight - 100, 450);
+        }
+        var btn = $('#scrollUp');
+        if (btn.length) {
+            if ($(window).scrollTop() < threshold) {
+                if (btn.is(':visible')) {
+                    btn.stop(true, true).fadeOut(250);
+                }
+            } else {
+                if (btn.is(':hidden')) {
+                    btn.stop(true, true).fadeIn(250);
+                }
+            }
+        }
+    }
+
+    $(window).on('scroll resize', checkScrollUpSection);
+    setTimeout(checkScrollUpSection, 150);
 
     /*------ Wow Active ----*/
     new WOW().init();

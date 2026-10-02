@@ -1294,15 +1294,24 @@ body, input, button, select, textarea {
   right: 28px !important;
   bottom: 28px !important;
   border-radius: 50% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  align-items: center;
+  justify-content: center;
   text-align: center !important;
   box-shadow: 0 10px 25px rgba(225, 29, 72, 0.45) !important;
   border: 2px solid rgba(255, 255, 255, 0.45) !important;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease !important;
   z-index: 9999 !important;
   text-decoration: none !important;
+}
+
+/* Force complete hide when at top of page or when scroll position is in section 1 */
+#scrollUp[style*="display: none"],
+#scrollUp[style*="none"],
+#scrollUp.is-hidden {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 #scrollUp i {

@@ -27,5 +27,5 @@
 
     <!-- Template  JS -->
     {{-- <script src="{{ asset('home/assets/js/custom.js') }}"></script> --}}
-    <script src="{{ asset('home/assets/js/main.js?v=3.4') }}"></script>
+    <script src="{{ asset('home/assets/js/main.js?v=3.5') }}"></script>
     <script src="{{ asset('home/assets/js/shop.js?v=3.4') }}"></script>
