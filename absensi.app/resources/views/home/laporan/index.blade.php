@@ -37,9 +37,11 @@
                     </p>
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-2">
+                    @if (!\Auth::check() || \Auth::user()->isAdmin())
                     <a href="{{ route('realtime.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3" style="display: inline-flex; align-items: center; gap: 6px;">
                         <i class="fa-solid fa-chart-line"></i> Presensi Realtime
                     </a>
+                    @endif
                     <a href="{{ route('absensi.index') }}" class="btn btn-sm btn-banat-outline" style="display: inline-flex; align-items: center; gap: 6px;">
                         <i class="fa-solid fa-users"></i> Data Civitas
                     </a>
