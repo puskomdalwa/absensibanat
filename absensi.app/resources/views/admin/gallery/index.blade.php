@@ -15,13 +15,13 @@
 
         .upload-zone:hover,
         .upload-zone.dragover {
-            border-color: #7367f0;
-            background: #f0efff;
+            border-color: #fb7185;
+            background: rgba(251, 113, 133, 0.08);
         }
 
         .upload-zone i {
             font-size: 48px;
-            color: #7367f0;
+            color: #e11d48;
             margin-bottom: 15px;
         }
 

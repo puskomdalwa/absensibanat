@@ -6,6 +6,7 @@ use App\Models\Type;
 use App\Models\User;
 use App\Models\Departemen;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\DataTables;
 use App\Http\Controllers\Controller;
 
@@ -67,7 +68,7 @@ class TypeController extends Controller
     public function store(Request $request)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $request->validate([
                 'nama' => 'required|unique:type,nama',
             ]);
@@ -76,14 +77,14 @@ class TypeController extends Controller
             $type->nama = $request->nama;
             $type->save();
 
-            \DB::commit();    
+            DB::commit();    
             return [
                 'status' => true,
                 'type' => 'success',
                 'message' => 'Success'
             ];
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'type' => 'error',
@@ -91,7 +92,7 @@ class TypeController extends Controller
                 'req' => $request->all()
             ]);
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return [
                 'status' => false,
                 'type' => 'error',
@@ -103,7 +104,7 @@ class TypeController extends Controller
     public function update(Request $request)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $type = Type::findOrFail($request->id);
 
             $request->validate([
@@ -114,14 +115,14 @@ class TypeController extends Controller
             $type->nama = $request->nama;
             $type->save();
 
-            \DB::commit();
+            DB::commit();
             return [
                 'status' => true,
                 'type' => 'success',
                 'message' => 'Success'
             ];
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'type' => 'error',
@@ -129,7 +130,7 @@ class TypeController extends Controller
                 'req' => $request->all()
             ]);
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return [
                 'status' => false,
                 'type' => 'error',
@@ -141,7 +142,7 @@ class TypeController extends Controller
     public function delete(Request $request)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $request->validate([
                 'id' => 'required',
             ]);
@@ -149,7 +150,7 @@ class TypeController extends Controller
             $data = Type::findOrFail($request->id);
             $data->delete();
 
-            \DB::commit();
+            DB::commit();
             return [
                 'status'  => true,
                 'type'    => 'success',
@@ -157,7 +158,7 @@ class TypeController extends Controller
                 'request' => $request->all(),
             ];
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return [
                 'status'  => false,
                 'type'    => 'error',
@@ -167,6 +168,10 @@ class TypeController extends Controller
         }
     }
 
+    /**
+     * @param int|string $id
+     * @return \Illuminate\Contracts\View\View
+     */
     public function assign($id)
     {
         $type = Type::findOrFail($id);
@@ -175,10 +180,15 @@ class TypeController extends Controller
         return view('admin.type.assign', compact('type', 'users', 'departemen'));
     }
 
+    /**
+     * @param Request $request
+     * @param int|string $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function assignStore(Request $request, $id)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $type = Type::findOrFail($id);
 
             $request->validate([
@@ -196,10 +206,10 @@ class TypeController extends Controller
                 User::whereIn('id', $userIds)->update(['type_id' => $type->id]);
             }
 
-            \DB::commit();
+            DB::commit();
             return redirect()->route('admin.type.index')->with('success', 'Batch assignment updated successfully.');
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return redirect()->back()->with('error', $th->getMessage());
         }
     }

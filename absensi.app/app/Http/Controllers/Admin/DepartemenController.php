@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Departemen;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Http\Services\BulkData;
 use Yajra\DataTables\DataTables;
 use App\Http\Controllers\Controller;
@@ -62,7 +63,7 @@ class DepartemenController extends Controller
     public function store(Request $request)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $request->validate([
                 'kode' => 'required|unique:departemen',
                 'nama' => 'required',
@@ -73,14 +74,14 @@ class DepartemenController extends Controller
             $departemen->nama = $request->nama;
             $departemen->save();
 
-            \DB::commit();    
+            DB::commit();    
             return [
                 'status' => true,
                 'type' => 'success',
                 'message' => 'Success'
             ];
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'type' => 'error',
@@ -88,7 +89,7 @@ class DepartemenController extends Controller
                 'req' => $request->all()
             ]);
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return [
                 'status' => false,
                 'type' => 'error',
@@ -100,7 +101,7 @@ class DepartemenController extends Controller
     public function update(Request $request)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $departemen = Departemen::findOrFail($request->id);
 
             $request->validate([
@@ -113,14 +114,14 @@ class DepartemenController extends Controller
             $departemen->nama = $request->nama;
             $departemen->save();
 
-            \DB::commit();
+            DB::commit();
             return [
                 'status' => true,
                 'type' => 'success',
                 'message' => 'Success'
             ];
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'type' => 'error',
@@ -128,7 +129,7 @@ class DepartemenController extends Controller
                 'req' => $request->all()
             ]);
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return [
                 'status' => false,
                 'type' => 'error',
@@ -140,7 +141,7 @@ class DepartemenController extends Controller
     public function delete(Request $request)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $request->validate([
                 'id' => 'required',
             ]);
@@ -148,7 +149,7 @@ class DepartemenController extends Controller
             $data = Departemen::findOrFail($request->id);
             $data->delete();
 
-            \DB::commit();
+            DB::commit();
             return [
                 'status' => true,
                 'type' => 'success',
@@ -156,7 +157,7 @@ class DepartemenController extends Controller
                 'request' => $request->all(),
             ];
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return [
                 'status' => false,
                 'type' => 'error',
