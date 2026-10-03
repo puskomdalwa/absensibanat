@@ -32,7 +32,10 @@
             <table class="datatables-basic table table-hover" id="table-1">
                 <thead>
                     <tr>
-                        <th>No</th>
+                        <th style="width: 50px;">No</th>
+                        <th style="width: 40px;" class="text-center">
+                            <input type="checkbox" class="form-check-input" id="check-all-users" title="Pilih Semua">
+                        </th>
                         <th>User</th>
                         <th>Username</th>
                         <th>Gender</th>
@@ -113,12 +116,18 @@
                 }
             });
         });
-    </script>
 
-    <script>
         var dataTable = initDataTables('table-1', 'loader-user', 'card-user', 'new-record-button', false,
             'User', "{{ route('admin.user.data') }}",
-            [{
+            [
+                {
+                    data: "checkbox",
+                    name: "checkbox",
+                    className: "text-center align-middle",
+                    searchable: false,
+                    orderable: false,
+                },
+                {
                     data: "name",
                     name: "name",
                     className: "align-middle",
@@ -143,5 +152,103 @@
             ],
             ['role_id', 'departemen_id']
         );
+
+        // Inject bulk delete button next to New Record button
+        $('#card-user .dt-action-buttons').prepend(`
+            <button type="button" id="btn-bulk-delete-users" class="btn btn-danger waves-effect waves-light me-2 d-none">
+                <i class="ti ti-trash me-1"></i> Hapus Terpilih (<span id="bulk-user-count">0</span>)
+            </button>
+        `);
+
+        function updateBulkDeleteButton() {
+            var count = $('.user-row-checkbox:checked').length;
+            $('#bulk-user-count').text(count);
+            if (count > 0) {
+                $('#btn-bulk-delete-users').removeClass('d-none');
+            } else {
+                $('#btn-bulk-delete-users').addClass('d-none');
+            }
+        }
+
+        $(document).on('change', '#check-all-users', function() {
+            var isChecked = $(this).is(':checked');
+            $('.user-row-checkbox:not(:disabled)').prop('checked', isChecked);
+            updateBulkDeleteButton();
+        });
+
+        $(document).on('change', '.user-row-checkbox', function() {
+            var total = $('.user-row-checkbox:not(:disabled)').length;
+            var checked = $('.user-row-checkbox:checked').length;
+            $('#check-all-users').prop('checked', total > 0 && total === checked);
+            updateBulkDeleteButton();
+        });
+
+        dataTable.on('draw', function() {
+            $('#check-all-users').prop('checked', false);
+            updateBulkDeleteButton();
+        });
+
+        $(document).on('click', '#btn-bulk-delete-users', function() {
+            var selectedIds = [];
+            var selectedNames = [];
+            $('.user-row-checkbox:checked').each(function() {
+                selectedIds.push($(this).val());
+                var name = $(this).data('name');
+                if (name && selectedNames.length < 5) {
+                    selectedNames.push(name);
+                }
+            });
+
+            if (selectedIds.length === 0) return;
+
+            var previewText = selectedNames.join(', ');
+            if (selectedIds.length > 5) {
+                previewText += ` dan ${selectedIds.length - 5} lainnya`;
+            }
+
+            Swal.fire({
+                title: `Hapus ${selectedIds.length} Pengguna Terpilih?`,
+                html: `<p>Akun yang akan dihapus: <strong>${previewText}</strong>.</p><p class="text-danger small mb-0">Tindakan ini akan menghapus data profil, foto, serta relasi mesin biometrik yang terkait dan tidak dapat dibatalkan!</p>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: `Ya, Hapus (${selectedIds.length})!`,
+                cancelButtonText: 'Batal',
+                customClass: {
+                    confirmButton: 'btn btn-danger me-3 waves-effect waves-light',
+                    cancelButton: 'btn btn-label-secondary waves-effect waves-light'
+                },
+                buttonsStyling: false
+            }).then(function(result) {
+                if (result.value) {
+                    Swal.fire({
+                        title: 'Menghapus data...',
+                        text: 'Mohon tunggu sebentar',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    $.ajax({
+                        url: "{{ route('admin.user.bulk_delete') }}",
+                        type: "POST",
+                        data: {
+                            ids: selectedIds,
+                            _token: "{{ csrf_token() }}"
+                        },
+                        success: function(response) {
+                            Swal.close();
+                            showToastr(response.type, response.type, response.message);
+                            dataTable.ajax.reload(null, false);
+                            $('#check-all-users').prop('checked', false);
+                            updateBulkDeleteButton();
+                        },
+                        error: function(err) {
+                            Swal.close();
+                            var msg = err.responseJSON ? err.responseJSON.message : 'Gagal menghapus data pengguna.';
+                            Swal.fire({ icon: 'error', title: 'Gagal', html: msg });
+                        }
+                    });
+                }
+            });
+        });
     </script>
 @endpush

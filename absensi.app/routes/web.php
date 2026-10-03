@@ -144,6 +144,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,staff'])->group(function
         Route::post('/store', [UserController::class, 'store'])->name('admin.user.store');
         Route::put('/update', [UserController::class, 'update'])->name('admin.user.update');
         Route::delete('/delete', [UserController::class, 'delete'])->name('admin.user.delete');
+        Route::post('/bulk-delete', [UserController::class, 'bulkDelete'])->name('admin.user.bulk_delete');
         Route::post('/import', [UserController::class, 'import'])->name('admin.user.import')->middleware('role:admin');
         Route::get('/import/template', [UserController::class, 'downloadTemplate'])->name('admin.user.import.template')->middleware('role:admin');
     });
@@ -205,6 +206,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,staff'])->group(function
         Route::post('/users/get-info', [FingerspotController::class, 'deviceUsersGetInfo'])->name('admin.fingerspot.users.get_info');
         Route::post('/users/set-info', [FingerspotController::class, 'deviceUsersSetInfo'])->name('admin.fingerspot.users.set_info');
         Route::delete('/users/delete', [FingerspotController::class, 'deviceUsersDelete'])->name('admin.fingerspot.users.delete');
+        Route::post('/users/bulk-delete', [FingerspotController::class, 'deviceUsersBulkDelete'])->name('admin.fingerspot.users.bulk_delete');
         Route::post('/users/reg-online', [FingerspotController::class, 'deviceUsersRegOnline'])->name('admin.fingerspot.users.reg_online');
         Route::post('/users/copy', [FingerspotController::class, 'deviceUsersCopy'])->name('admin.fingerspot.users.copy');
         Route::post('/users/batch-precheck', [FingerspotController::class, 'batchUsersPrecheck'])->name('admin.fingerspot.users.batch_precheck');

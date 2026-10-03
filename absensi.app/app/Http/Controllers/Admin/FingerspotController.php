@@ -369,7 +369,10 @@ class FingerspotController extends Controller
                         </button>
                     </div>';
             })
-            ->rawColumns(['user_display', 'credentials', 'privilege', 'last_sync_at', 'action'])
+            ->addColumn('checkbox', function ($row) {
+                return '<div class="text-center"><input type="checkbox" class="form-check-input device-user-row-checkbox" data-cloud-id="' . e($row->cloud_id) . '" data-pin="' . e($row->pin) . '" data-name="' . e($row->name) . '"></div>';
+            })
+            ->rawColumns(['checkbox', 'user_display', 'credentials', 'privilege', 'last_sync_at', 'action'])
             ->toJson();
     }
 
@@ -447,7 +450,52 @@ class FingerspotController extends Controller
 
         $res = Fingerspot::deleteUserInfo(null, $request->cloud_id, $request->pin);
 
+        if ($res['success'] ?? false) {
+            FingerspotDeviceUser::where('cloud_id', $request->cloud_id)->where('pin', $request->pin)->delete();
+        }
+
         return response()->json($res);
+    }
+
+    public function deviceUsersBulkDelete(Request $request)
+    {
+        $request->validate([
+            'users'            => 'required|array|min:1',
+            'users.*.cloud_id' => 'required|string',
+            'users.*.pin'      => 'required|string',
+        ]);
+
+        $successCount = 0;
+        $failedCount = 0;
+        $errors = [];
+
+        foreach ($request->users as $item) {
+            $cloudId = $item['cloud_id'];
+            $pin = (string) $item['pin'];
+
+            try {
+                $res = Fingerspot::deleteUserInfo(null, $cloudId, $pin);
+                if ($res['success'] ?? false) {
+                    FingerspotDeviceUser::where('cloud_id', $cloudId)->where('pin', $pin)->delete();
+                    $successCount++;
+                } else {
+                    $failedCount++;
+                    $msg = $res['message'] ?? 'Gagal menghapus dari mesin';
+                    $errors[] = "PIN {$pin} ({$cloudId}): {$msg}";
+                }
+            } catch (\Throwable $e) {
+                $failedCount++;
+                $errors[] = "PIN {$pin} ({$cloudId}): " . $e->getMessage();
+            }
+        }
+
+        return response()->json([
+            'success'       => $successCount > 0,
+            'message'       => "Berhasil memproses perintah hapus {$successCount} user dari mesin." . ($failedCount > 0 ? " ({$failedCount} gagal/offline)" : ''),
+            'success_count' => $successCount,
+            'failed_count'  => $failedCount,
+            'errors'        => $errors,
+        ]);
     }
 
     public function deviceUsersRegOnline(Request $request)

@@ -688,6 +688,14 @@ $(document).ready(function() {
             }
         },
         columns: [
+            {
+                data: 'checkbox',
+                name: 'checkbox',
+                orderable: false,
+                searchable: false,
+                className: 'text-center align-middle',
+                width: '40px'
+            },
             { 
                 data: 'cloud_id', 
                 name: 'cloud_id',
@@ -702,7 +710,35 @@ $(document).ready(function() {
             { data: 'last_sync_at', name: 'last_sync_at' },
             { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
         ],
-        order: [[0, 'asc']]
+        order: [[1, 'asc']]
+    });
+
+    function updateBulkDeviceUserBtn() {
+        var count = $('.device-user-row-checkbox:checked').length;
+        $('#bulk-device-user-count').text(count);
+        if (count > 0) {
+            $('#btn-bulk-delete-device-users').removeClass('d-none');
+        } else {
+            $('#btn-bulk-delete-device-users').addClass('d-none');
+        }
+    }
+
+    $(document).on('change', '#check-all-device-users', function() {
+        var isChecked = $(this).is(':checked');
+        $('.device-user-row-checkbox').prop('checked', isChecked);
+        updateBulkDeviceUserBtn();
+    });
+
+    $(document).on('change', '.device-user-row-checkbox', function() {
+        var total = $('.device-user-row-checkbox').length;
+        var checked = $('.device-user-row-checkbox:checked').length;
+        $('#check-all-device-users').prop('checked', total > 0 && total === checked);
+        updateBulkDeviceUserBtn();
+    });
+
+    tableDeviceUsers.on('draw', function() {
+        $('#check-all-device-users').prop('checked', false);
+        updateBulkDeviceUserBtn();
     });
 
     $('#filter-user-cloud-id').on('change', function() {
@@ -945,9 +981,110 @@ $(document).ready(function() {
                             buttonsStyling: false
                         });
                         tableCommands.ajax.reload(null, false);
+                        tableDeviceUsers.ajax.reload(null, false);
+                        updateBulkDeviceUserBtn();
                     },
                     error: function(err) {
                         Swal.fire({ icon: 'error', title: 'Gagal', text: err.responseJSON ? err.responseJSON.message : 'Gagal mengirim perintah hapus.' });
+                    }
+                });
+            }
+        });
+    });
+
+    // Hapus Massal User dari Mesin (Bulk delete_userinfo)
+    $(document).on('click', '#btn-bulk-delete-device-users', function() {
+        var selectedUsers = [];
+        var previewList = [];
+
+        $('.device-user-row-checkbox:checked').each(function() {
+            var cloudId = $(this).data('cloud-id');
+            var pin = $(this).data('pin');
+            var name = $(this).data('name') || `User #${pin}`;
+
+            selectedUsers.push({
+                cloud_id: String(cloudId),
+                pin: String(pin)
+            });
+
+            if (previewList.length < 5) {
+                previewList.push(`${name} (PIN: ${pin})`);
+            }
+        });
+
+        if (selectedUsers.length === 0) return;
+
+        var previewText = previewList.join(', ');
+        if (selectedUsers.length > 5) {
+            previewText += ` dan ${selectedUsers.length - 5} lainnya`;
+        }
+
+        Swal.fire({
+            title: `Hapus ${selectedUsers.length} Pengguna dari Mesin?`,
+            html: `<p>Daftar pengguna yang akan dihapus dari mesin:</p>
+                   <div class="alert alert-danger text-start py-2 px-3 mb-2 small">
+                       <strong>${previewText}</strong>
+                   </div>
+                   <p class="text-danger small mb-0"><i class="ti ti-alert-triangle me-1"></i>Perintah <code>delete_userinfo</code> akan dikirimkan ke mesin bersangkutan dan data biometrik/kredensial pada mesin akan dihapus!</p>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: `Ya, Hapus (${selectedUsers.length}) dari Mesin!`,
+            cancelButtonText: 'Batal',
+            customClass: {
+                confirmButton: 'btn btn-danger me-3 waves-effect waves-light',
+                cancelButton: 'btn btn-label-secondary waves-effect waves-light'
+            },
+            buttonsStyling: false
+        }).then(function(result) {
+            if (result.value) {
+                Swal.fire({
+                    title: 'Mengirim perintah hapus ke mesin...',
+                    text: 'Mohon tunggu, proses sedang dikirim ke cloud Fingerspot',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                $.ajax({
+                    url: "{{ route('admin.fingerspot.users.bulk_delete') }}",
+                    type: "POST",
+                    data: {
+                        users: selectedUsers,
+                        _token: csrfToken
+                    },
+                    success: function(res) {
+                        Swal.close();
+                        if (res.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil Memproses!',
+                                text: res.message,
+                                customClass: { confirmButton: 'btn btn-primary' },
+                                buttonsStyling: false
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Perhatian',
+                                text: res.message,
+                                customClass: { confirmButton: 'btn btn-primary' },
+                                buttonsStyling: false
+                            });
+                        }
+                        tableDeviceUsers.ajax.reload(null, false);
+                        tableCommands.ajax.reload(null, false);
+                        $('#check-all-device-users').prop('checked', false);
+                        updateBulkDeviceUserBtn();
+                    },
+                    error: function(err) {
+                        Swal.close();
+                        var msg = err.responseJSON ? err.responseJSON.message : 'Gagal mengirim perintah hapus massal ke mesin.';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: msg,
+                            customClass: { confirmButton: 'btn btn-primary' },
+                            buttonsStyling: false
+                        });
                     }
                 });
             }

@@ -33,6 +33,9 @@
                 </select>
             </div>
             <div class="col-md-8 col-sm-6 text-end">
+                <button type="button" class="btn btn-sm btn-danger waves-effect waves-light me-2 d-none" id="btn-bulk-delete-device-users">
+                    <i class="ti ti-trash me-1"></i> Hapus Terpilih dari Mesin (<span id="bulk-device-user-count">0</span>)
+                </button>
                 <button type="button" class="btn btn-sm btn-label-secondary waves-effect" id="btn-refresh-device-users">
                     <i class="ti ti-refresh me-1"></i> Refresh Tabel
                 </button>
@@ -43,6 +46,9 @@
         <table class="datatables-basic table table-hover" id="table-device-users">
             <thead class="table-light">
                 <tr>
+                    <th style="width: 40px;" class="text-center">
+                        <input type="checkbox" class="form-check-input" id="check-all-device-users" title="Pilih Semua">
+                    </th>
                     <th style="width: 140px;">Cloud ID / Mesin</th>
                     <th>User & PIN</th>
                     <th>Kredensial / Biometrik</th>

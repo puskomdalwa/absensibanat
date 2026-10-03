@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\Departemen;
 use App\Models\Type;
+use App\Models\FingerspotDeviceUser;
 use Illuminate\Http\Request;
 use App\Http\Services\BulkData;
 use App\Imports\MainUserImport;
@@ -138,7 +139,16 @@ class UserController extends Controller
                         </div>';
                 return $actionButtons;
             })
-            ->rawColumns(['action', 'name'])
+            ->addColumn('checkbox', function ($row) use ($isStaff, $request) {
+                if ($row->id == $request->user()->id) {
+                    return '<div class="text-center"><input type="checkbox" class="form-check-input user-row-checkbox" disabled title="Akun Anda sendiri"></div>';
+                }
+                if ($isStaff && ! $row->hasRole('user')) {
+                    return '<div class="text-center"><input type="checkbox" class="form-check-input user-row-checkbox" disabled title="Staff hanya dapat menghapus role user"></div>';
+                }
+                return '<div class="text-center"><input type="checkbox" class="form-check-input user-row-checkbox" value="' . $row->id . '" data-name="' . e($row->name) . '"></div>';
+            })
+            ->rawColumns(['checkbox', 'action', 'name'])
             ->toJson();
     }
 
@@ -362,6 +372,14 @@ class UserController extends Controller
     {
         $data = User::findOrFail($request->id);
 
+        if ($request->user()->id == $data->id) {
+            return response()->json([
+                'status'  => false,
+                'type'    => 'error',
+                'message' => 'Anda tidak dapat menghapus akun Anda sendiri.',
+            ], 422);
+        }
+
         if ($request->user()->isStaff() && ! $data->hasRole('user')) {
             abort(403, 'Staff hanya dapat menghapus akun dengan role user.');
         }
@@ -375,9 +393,11 @@ class UserController extends Controller
             if ($data->photo) {
                 $path = public_path('photo/' . $data->photo);
                 if (file_exists($path)) {
-                    unlink($path);
+                    @unlink($path);
                 }
             }
+
+            FingerspotDeviceUser::where('pin', (string)$data->id)->delete();
             $data->delete();
 
             DB::commit();
@@ -395,6 +415,83 @@ class UserController extends Controller
                 'message' => $th->getMessage(),
                 'request' => $request->all(),
             ];
+        }
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer',
+        ]);
+
+        $currentUser = $request->user();
+        $targetIds = array_diff($request->ids, [$currentUser->id]);
+
+        if (empty($targetIds)) {
+            return response()->json([
+                'status'  => false,
+                'type'    => 'error',
+                'message' => 'Tidak ada akun valid yang dapat dihapus (Anda tidak dapat menghapus akun Anda sendiri).',
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $query = User::whereIn('id', $targetIds);
+            if ($currentUser->isStaff()) {
+                $roleUserId = Role::where('akses', 'user')->value('id');
+                $query->where('role_id', $roleUserId);
+            }
+
+            $users = $query->get();
+
+            if ($users->isEmpty()) {
+                DB::rollBack();
+                return response()->json([
+                    'status'  => false,
+                    'type'    => 'error',
+                    'message' => 'Tidak ada akun pengguna yang memenuhi syarat untuk dihapus.',
+                ], 422);
+            }
+
+            $deletedCount = 0;
+            $deletedPins = [];
+
+            foreach ($users as $user) {
+                if ($user->photo) {
+                    $path = public_path('photo/' . $user->photo);
+                    if (file_exists($path)) {
+                        @unlink($path);
+                    }
+                }
+
+                $deletedPins[] = (string)$user->id;
+                $user->delete();
+                $deletedCount++;
+            }
+
+            if (!empty($deletedPins)) {
+                FingerspotDeviceUser::whereIn('pin', $deletedPins)->delete();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status'        => true,
+                'type'          => 'success',
+                'message'       => "Berhasil menghapus {$deletedCount} akun pengguna.",
+                'deleted_count' => $deletedCount,
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error('Bulk delete users error: ' . $th->getMessage());
+            return response()->json([
+                'status'  => false,
+                'type'    => 'error',
+                'message' => 'Terjadi kesalahan saat menghapus pengguna: ' . $th->getMessage(),
+            ], 500);
         }
     }
 
