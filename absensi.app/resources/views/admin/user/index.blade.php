@@ -208,7 +208,7 @@
 
             Swal.fire({
                 title: `Hapus ${selectedIds.length} Pengguna Terpilih?`,
-                html: `<p>Akun yang akan dihapus: <strong>${previewText}</strong>.</p><p class="text-danger small mb-0">Tindakan ini akan menghapus data profil, foto, serta relasi mesin biometrik yang terkait dan tidak dapat dibatalkan!</p>`,
+                html: `<p>Akun yang akan dihapus: <strong>${previewText}</strong>.</p><p class="text-danger small mb-0"><i class="ti ti-alert-triangle me-1"></i>Tindakan ini akan menghapus data profil, foto, serta relasi mesin biometrik yang terkait dan tidak dapat dibatalkan!</p>`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: `Ya, Hapus (${selectedIds.length})!`,
@@ -220,31 +220,83 @@
                 buttonsStyling: false
             }).then(function(result) {
                 if (result.value) {
-                    Swal.fire({
-                        title: 'Menghapus data...',
-                        text: 'Mohon tunggu sebentar',
-                        allowOutsideClick: false,
-                        didOpen: () => { Swal.showLoading(); }
-                    });
+                    var totalUsers = selectedIds.length;
+                    var processedCount = 0;
+                    var successCount = 0;
+                    var failedCount = 0;
+                    var chunkSize = 10;
+                    var currentIndex = 0;
 
-                    $.ajax({
-                        url: "{{ route('admin.user.bulk_delete') }}",
-                        type: "POST",
-                        data: {
-                            ids: selectedIds,
-                            _token: "{{ csrf_token() }}"
-                        },
-                        success: function(response) {
-                            Swal.close();
-                            showToastr(response.type, response.type, response.message);
-                            dataTable.ajax.reload(null, false);
-                            $('#check-all-users').prop('checked', false);
-                            updateBulkDeleteButton();
-                        },
-                        error: function(err) {
-                            Swal.close();
-                            var msg = err.responseJSON ? err.responseJSON.message : 'Gagal menghapus data pengguna.';
-                            Swal.fire({ icon: 'error', title: 'Gagal', html: msg });
+                    Swal.fire({
+                        title: 'Menghapus Pengguna...',
+                        html: `
+                            <div class="p-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small fw-bold text-dark" id="user-delete-progress-text">Memproses: 0 / ${totalUsers} (0%)</span>
+                                    <span class="badge bg-danger" id="user-delete-progress-percent">0%</span>
+                                </div>
+                                <div class="progress" style="height: 12px; background-color: #f1f1f2;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger" id="user-delete-progress-bar" style="width: 0%;"></div>
+                                </div>
+                                <p class="text-muted small mt-2 mb-0">Mohon tunggu, proses batch penghapusan sedang berlangsung...</p>
+                            </div>
+                        `,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            function updateUserProgressUI(processed, total) {
+                                var pct = Math.min(100, Math.round((processed / total) * 100));
+                                $('#user-delete-progress-bar').css('width', pct + '%');
+                                $('#user-delete-progress-text').text(`Memproses: ${processed} / ${total} (${pct}%)`);
+                                $('#user-delete-progress-percent').text(pct + '%');
+                            }
+
+                            function runUserDeleteChunk() {
+                                if (currentIndex >= totalUsers) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Penghapusan Selesai!',
+                                        html: `<p>Berhasil memproses <strong>${successCount}</strong> akun pengguna.` + (failedCount > 0 ? `<br><span class="text-danger">${failedCount} akun gagal diproses.</span>` : '') + `</p>`,
+                                        customClass: { confirmButton: 'btn btn-primary' },
+                                        buttonsStyling: false
+                                    });
+                                    dataTable.ajax.reload(null, false);
+                                    $('#check-all-users').prop('checked', false);
+                                    updateBulkDeleteButton();
+                                    return;
+                                }
+
+                                var chunk = selectedIds.slice(currentIndex, currentIndex + chunkSize);
+                                var curSize = chunk.length;
+
+                                $.ajax({
+                                    url: "{{ route('admin.user.bulk_delete') }}",
+                                    type: "POST",
+                                    data: {
+                                        ids: chunk,
+                                        _token: "{{ csrf_token() }}"
+                                    },
+                                    success: function(response) {
+                                        successCount += (response.deleted_count || curSize);
+                                        processedCount += curSize;
+                                        currentIndex += curSize;
+
+                                        updateUserProgressUI(processedCount, totalUsers);
+                                        setTimeout(runUserDeleteChunk, 80);
+                                    },
+                                    error: function(err) {
+                                        failedCount += curSize;
+                                        processedCount += curSize;
+                                        currentIndex += curSize;
+
+                                        updateUserProgressUI(processedCount, totalUsers);
+                                        setTimeout(runUserDeleteChunk, 100);
+                                    }
+                                });
+                            }
+
+                            runUserDeleteChunk();
                         }
                     });
                 }

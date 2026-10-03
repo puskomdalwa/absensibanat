@@ -425,6 +425,8 @@ class UserController extends Controller
             'ids.*' => 'integer',
         ]);
 
+        @set_time_limit(120);
+
         $currentUser = $request->user();
         $targetIds = array_diff($request->ids, [$currentUser->id]);
 

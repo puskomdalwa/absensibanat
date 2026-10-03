@@ -602,3 +602,118 @@
         </div>
     </div>
 </div>
+
+{{-- Modal Hapus Massal Pengguna di Mesin (Batch Delete Anti-Timeout) --}}
+<div class="modal fade" id="modal-batch-delete-device-users" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg border-0" style="border-radius: 16px; overflow: hidden;">
+            <!-- Modal Header -->
+            <div class="modal-header py-3 px-4 bg-white border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="avatar avatar-md rounded-3 bg-label-danger d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px;">
+                        <i class="ti ti-trash-x fs-3 text-danger"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0">Hapus Pengguna dari Mesin Biometrik</h5>
+                        <small class="text-muted">Proses penghapusan bertahap (batch) anti-timeout & sinkronisasi live</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="btn-close-batch-delete-modal"></button>
+            </div>
+
+            <!-- Modal Body: Confirmation & Progress -->
+            <div class="modal-body p-4">
+                <!-- Info Alert -->
+                <div class="alert alert-danger d-flex align-items-center gap-3 p-3 mb-3 border-0 shadow-sm" style="border-radius: 12px; background: rgba(234, 84, 85, 0.08);">
+                    <div class="avatar avatar-sm rounded-circle bg-danger text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width: 36px; height: 36px;">
+                        <i class="ti ti-alert-triangle fs-4"></i>
+                    </div>
+                    <div class="small text-dark flex-grow-1">
+                        <div class="fw-bold mb-1 text-danger">Peringatan Penghapusan dari Mesin Fisik</div>
+                        Perintah <code>delete_userinfo</code> akan dikirimkan secara bertahap ke mesin bersangkutan untuk menghapus PIN, nama, dan seluruh template biometrik (sidik jari, wajah, RFID) pada mesin fisik.
+                    </div>
+                </div>
+
+                <!-- Execution Status Area -->
+                <div class="text-center py-2 mb-3" id="batch-delete-header-status">
+                    <div class="avatar avatar-xl rounded-circle bg-label-danger mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                        <div class="spinner-border text-danger" role="status" id="batch-delete-live-spinner" style="width: 2rem; height: 2rem; display: none;">
+                            <span class="visually-hidden">Memproses...</span>
+                        </div>
+                        <i class="ti ti-trash text-danger fs-1" id="batch-delete-static-icon"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1" id="batch-delete-status-title">Siap Menghapus Pengguna Terpilih</h5>
+                    <p class="text-muted small mb-0" id="batch-delete-status-subtitle">Total <strong class="text-danger" id="batch-delete-total-preview">0</strong> akun user dipilih untuk dihapus dari mesin.</p>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mb-3 bg-light p-3 rounded-3 border">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold text-dark small" id="batch-delete-progress-text">Menunggu konfirmasi...</span>
+                        <span class="badge bg-danger rounded-pill px-3 py-1 fw-bold fs-6" id="batch-delete-progress-percent">0%</span>
+                    </div>
+                    <div class="progress" style="height: 12px; border-radius: 6px; background-color: #e9ecef;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger" role="progressbar" 
+                             id="batch-delete-progress-bar" style="width: 0%;" 
+                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+
+                <!-- Counters Badge -->
+                <div class="row g-3 mb-3 text-center">
+                    <div class="col-4">
+                        <div class="p-2 border rounded-3 shadow-none bg-light">
+                            <small class="text-muted fw-bold d-block mb-1">Total Target</small>
+                            <span class="fs-5 fw-bold text-dark" id="batch-delete-count-total">0</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 border rounded-3 shadow-none" style="background: rgba(40, 199, 111, 0.08); border-color: rgba(40, 199, 111, 0.25) !important;">
+                            <small class="text-success fw-bold d-block mb-1"><i class="ti ti-check me-1"></i> Terhapus</small>
+                            <span class="fs-5 fw-bold text-success" id="batch-delete-count-success">0</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 border rounded-3 shadow-none" style="background: rgba(234, 84, 85, 0.08); border-color: rgba(234, 84, 85, 0.25) !important;">
+                            <small class="text-danger fw-bold d-block mb-1"><i class="ti ti-x me-1"></i> Gagal/Offline</small>
+                            <span class="fs-5 fw-bold text-danger" id="batch-delete-count-failed">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Execution Console Log -->
+                <div class="card border shadow-none" style="border-radius: 10px; background-color: #0f172a; border-color: #1e293b !important;">
+                    <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center" style="background-color: #1e293b; border-bottom: 1px solid #334155;">
+                        <span class="font-monospace text-light small fw-bold">
+                            <i class="ti ti-terminal me-1 text-danger"></i> Log Eksekusi Mesin (Real-time Batch Console)
+                        </span>
+                        <span class="badge bg-secondary font-monospace" style="font-size: 10px;">Anti-Timeout Active</span>
+                    </div>
+                    <div class="card-body p-3 font-monospace small" id="batch-delete-live-log" 
+                         style="max-height: 180px; overflow-y: auto; color: #cbd5e1; line-height: 1.6; font-size: 0.78rem;">
+                        <div class="text-secondary">[Sistem] Menunggu Anda mengklik tombol "Mulai Hapus Sekarang"...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer py-3 px-4 bg-light border-top d-flex justify-content-between">
+                <div>
+                    <button type="button" class="btn btn-outline-warning btn-sm d-none" id="btn-pause-batch-delete">
+                        <i class="ti ti-player-pause me-1"></i> Jeda
+                    </button>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal" id="btn-cancel-batch-delete">Batal</button>
+                    <button type="button" class="btn btn-danger" id="btn-start-batch-delete">
+                        <i class="ti ti-trash me-1"></i> Ya, Mulai Hapus dari Mesin Sekarang
+                    </button>
+                    <button type="button" class="btn btn-primary d-none" data-bs-dismiss="modal" id="btn-finish-batch-delete">
+                        <i class="ti ti-check me-1"></i> Selesai & Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

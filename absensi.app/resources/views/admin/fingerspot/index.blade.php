@@ -992,11 +992,50 @@ $(document).ready(function() {
         });
     });
 
-    // Hapus Massal User dari Mesin (Bulk delete_userinfo)
+    // ----------------------------------------------------
+    // TAB 3: BATCH HAPUS PENGGUNA DARI MESIN (ANTI-TIMEOUT & CHUNKED)
+    // ----------------------------------------------------
+    var batchDeleteState = {
+        users: [],
+        total: 0,
+        processed: 0,
+        success: 0,
+        failed: 0,
+        isPaused: false,
+        isProcessing: false,
+        currentIndex: 0,
+        chunkSize: 3 // Small chunk size = 3 users per request (fast, zero timeout)
+    };
+
+    function resetBatchDeleteModal() {
+        batchDeleteState.isProcessing = false;
+        batchDeleteState.isPaused = false;
+        batchDeleteState.processed = 0;
+        batchDeleteState.success = 0;
+        batchDeleteState.failed = 0;
+        batchDeleteState.currentIndex = 0;
+
+        $('#batch-delete-live-spinner').hide();
+        $('#batch-delete-static-icon').show();
+        $('#batch-delete-status-title').text('Siap Menghapus Pengguna Terpilih');
+        $('#batch-delete-status-subtitle').html(`Total <strong class="text-danger">${batchDeleteState.total}</strong> akun user dipilih untuk dihapus dari mesin.`);
+        $('#batch-delete-progress-bar').removeClass('bg-success').addClass('bg-danger').css('width', '0%').attr('aria-valuenow', 0);
+        $('#batch-delete-progress-text').text('Menunggu konfirmasi...');
+        $('#batch-delete-progress-percent').text('0%');
+        $('#batch-delete-count-total').text(batchDeleteState.total);
+        $('#batch-delete-count-success').text('0');
+        $('#batch-delete-count-failed').text('0');
+        $('#batch-delete-live-log').html('<div class="text-secondary">[Sistem] Siap memulai proses penghapusan bertahap anti-timeout...</div>');
+
+        $('#btn-cancel-batch-delete').removeClass('d-none');
+        $('#btn-start-batch-delete').removeClass('d-none').prop('disabled', false).html('<i class="ti ti-trash me-1"></i> Ya, Mulai Hapus dari Mesin Sekarang');
+        $('#btn-pause-batch-delete').addClass('d-none').removeClass('btn-outline-success').addClass('btn-outline-warning').html('<i class="ti ti-player-pause me-1"></i> Jeda');
+        $('#btn-finish-batch-delete').addClass('d-none');
+        $('#btn-close-batch-delete-modal').prop('disabled', false);
+    }
+
     $(document).on('click', '#btn-bulk-delete-device-users', function() {
         var selectedUsers = [];
-        var previewList = [];
-
         $('.device-user-row-checkbox:checked').each(function() {
             var cloudId = $(this).data('cloud-id');
             var pin = $(this).data('pin');
@@ -1004,92 +1043,151 @@ $(document).ready(function() {
 
             selectedUsers.push({
                 cloud_id: String(cloudId),
-                pin: String(pin)
+                pin: String(pin),
+                name: String(name)
             });
-
-            if (previewList.length < 5) {
-                previewList.push(`${name} (PIN: ${pin})`);
-            }
         });
 
-        if (selectedUsers.length === 0) return;
-
-        var previewText = previewList.join(', ');
-        if (selectedUsers.length > 5) {
-            previewText += ` dan ${selectedUsers.length - 5} lainnya`;
+        if (selectedUsers.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'Pilih Pengguna', text: 'Centang minimal satu pengguna untuk dihapus.' });
+            return;
         }
 
-        Swal.fire({
-            title: `Hapus ${selectedUsers.length} Pengguna dari Mesin?`,
-            html: `<p>Daftar pengguna yang akan dihapus dari mesin:</p>
-                   <div class="alert alert-danger text-start py-2 px-3 mb-2 small">
-                       <strong>${previewText}</strong>
-                   </div>
-                   <p class="text-danger small mb-0"><i class="ti ti-alert-triangle me-1"></i>Perintah <code>delete_userinfo</code> akan dikirimkan ke mesin bersangkutan dan data biometrik/kredensial pada mesin akan dihapus!</p>`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: `Ya, Hapus (${selectedUsers.length}) dari Mesin!`,
-            cancelButtonText: 'Batal',
-            customClass: {
-                confirmButton: 'btn btn-danger me-3 waves-effect waves-light',
-                cancelButton: 'btn btn-label-secondary waves-effect waves-light'
-            },
-            buttonsStyling: false
-        }).then(function(result) {
-            if (result.value) {
-                Swal.fire({
-                    title: 'Mengirim perintah hapus ke mesin...',
-                    text: 'Mohon tunggu, proses sedang dikirim ke cloud Fingerspot',
-                    allowOutsideClick: false,
-                    didOpen: () => { Swal.showLoading(); }
-                });
+        batchDeleteState.users = selectedUsers;
+        batchDeleteState.total = selectedUsers.length;
 
-                $.ajax({
-                    url: "{{ route('admin.fingerspot.users.bulk_delete') }}",
-                    type: "POST",
-                    data: {
-                        users: selectedUsers,
-                        _token: csrfToken
-                    },
-                    success: function(res) {
-                        Swal.close();
-                        if (res.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil Memproses!',
-                                text: res.message,
-                                customClass: { confirmButton: 'btn btn-primary' },
-                                buttonsStyling: false
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'warning',
-                                title: 'Perhatian',
-                                text: res.message,
-                                customClass: { confirmButton: 'btn btn-primary' },
-                                buttonsStyling: false
-                            });
-                        }
-                        tableDeviceUsers.ajax.reload(null, false);
-                        tableCommands.ajax.reload(null, false);
-                        $('#check-all-device-users').prop('checked', false);
-                        updateBulkDeviceUserBtn();
-                    },
-                    error: function(err) {
-                        Swal.close();
-                        var msg = err.responseJSON ? err.responseJSON.message : 'Gagal mengirim perintah hapus massal ke mesin.';
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Gagal',
-                            text: msg,
-                            customClass: { confirmButton: 'btn btn-primary' },
-                            buttonsStyling: false
-                        });
-                    }
-                });
+        resetBatchDeleteModal();
+        $('#modal-batch-delete-device-users').modal('show');
+    });
+
+    $('#btn-start-batch-delete').on('click', function() {
+        batchDeleteState.isProcessing = true;
+        batchDeleteState.isPaused = false;
+
+        $('#batch-delete-static-icon').hide();
+        $('#batch-delete-live-spinner').show();
+        $('#batch-delete-status-title').text('Sedang Menghapus Pengguna dari Mesin...');
+        $('#batch-delete-status-subtitle').text('Mohon jangan menutup jendela browser ini hingga proses selesai.');
+
+        $('#btn-cancel-batch-delete').addClass('d-none');
+        $('#btn-start-batch-delete').addClass('d-none');
+        $('#btn-pause-batch-delete').removeClass('d-none');
+        $('#btn-close-batch-delete-modal').prop('disabled', true);
+
+        appendBatchDeleteLog(`[Sistem] Memulai proses penghapusan batch untuk ${batchDeleteState.total} user...`, 'text-info');
+        runNextDeleteBatch();
+    });
+
+    $('#btn-pause-batch-delete').on('click', function() {
+        if (!batchDeleteState.isPaused) {
+            batchDeleteState.isPaused = true;
+            $(this).removeClass('btn-outline-warning').addClass('btn-outline-success').html('<i class="ti ti-player-play me-1"></i> Lanjutkan');
+            appendBatchDeleteLog('[Sistem] Proses dijeda sementara oleh pengguna.', 'text-warning');
+        } else {
+            batchDeleteState.isPaused = false;
+            $(this).removeClass('btn-outline-success').addClass('btn-outline-warning').html('<i class="ti ti-player-pause me-1"></i> Jeda');
+            appendBatchDeleteLog('[Sistem] Melanjutkan proses penghapusan...', 'text-info');
+            runNextDeleteBatch();
+        }
+    });
+
+    function runNextDeleteBatch() {
+        if (!batchDeleteState.isProcessing || batchDeleteState.isPaused) {
+            return;
+        }
+
+        if (batchDeleteState.currentIndex >= batchDeleteState.total) {
+            finishBatchDelete();
+            return;
+        }
+
+        var chunk = batchDeleteState.users.slice(batchDeleteState.currentIndex, batchDeleteState.currentIndex + batchDeleteState.chunkSize);
+        var currentChunkSize = chunk.length;
+
+        $.ajax({
+            url: "{{ route('admin.fingerspot.users.bulk_delete') }}",
+            type: "POST",
+            data: {
+                users: chunk,
+                _token: csrfToken
+            },
+            timeout: 60000,
+            success: function(res) {
+                if (res.logs && res.logs.length > 0) {
+                    $.each(res.logs, function(idx, log) {
+                        var logClass = log.status === 'success' ? 'text-success' : (log.status === 'warning' ? 'text-warning' : 'text-danger');
+                        var icon = log.status === 'success' ? '✓' : (log.status === 'warning' ? '⚠' : '✗');
+                        appendBatchDeleteLog(`[${icon}] ${log.message}`, logClass);
+                    });
+                } else {
+                    appendBatchDeleteLog(`[✓] Berhasil memproses ${currentChunkSize} user.`, 'text-success');
+                }
+
+                batchDeleteState.success += (res.success_count || currentChunkSize);
+                batchDeleteState.failed += (res.failed_count || 0);
+                batchDeleteState.processed += currentChunkSize;
+                batchDeleteState.currentIndex += currentChunkSize;
+
+                updateBatchDeleteProgress();
+
+                // Small pause of 100ms before next chunk
+                setTimeout(runNextDeleteBatch, 100);
+            },
+            error: function(err) {
+                // Anti-gagal: Record hiccup in log and advance to next chunk so process never stalls
+                appendBatchDeleteLog(`[✗] Batch PIN [${chunk.map(u => u.pin).join(', ')}] server error: ${err.statusText || 'Error'}. Melanjutkan batch berikutnya...`, 'text-danger');
+
+                batchDeleteState.failed += currentChunkSize;
+                batchDeleteState.processed += currentChunkSize;
+                batchDeleteState.currentIndex += currentChunkSize;
+
+                updateBatchDeleteProgress();
+
+                setTimeout(runNextDeleteBatch, 200);
             }
         });
-    });
+    }
+
+    function updateBatchDeleteProgress() {
+        var processed = Math.min(batchDeleteState.processed, batchDeleteState.total);
+        var total = batchDeleteState.total;
+        var percent = total > 0 ? Math.round((processed / total) * 100) : 0;
+
+        $('#batch-delete-progress-bar').css('width', percent + '%').attr('aria-valuenow', percent);
+        $('#batch-delete-progress-text').text(`Memproses: ${processed} / ${total} Pengguna (${percent}%)`);
+        $('#batch-delete-progress-percent').text(percent + '%');
+        $('#batch-delete-count-success').text(batchDeleteState.success);
+        $('#batch-delete-count-failed').text(batchDeleteState.failed);
+    }
+
+    function appendBatchDeleteLog(message, cssClass) {
+        var logBox = $('#batch-delete-live-log');
+        var time = new Date().toLocaleTimeString();
+        logBox.append(`<div class="${cssClass || ''}"><span class="text-secondary">[${time}]</span> ${message}</div>`);
+        logBox.scrollTop(logBox[0].scrollHeight);
+    }
+
+    function finishBatchDelete() {
+        batchDeleteState.isProcessing = false;
+
+        $('#batch-delete-live-spinner').hide();
+        $('#batch-delete-static-icon').show();
+        $('#batch-delete-status-title').html('<i class="ti ti-circle-check text-success me-1"></i> Proses Hapus Massal Selesai!');
+        $('#batch-delete-status-subtitle').html(`Selesai memproses seluruh target: <strong class="text-success">${batchDeleteState.success} berhasil</strong>, <strong class="text-danger">${batchDeleteState.failed} gagal</strong>.`);
+        $('#batch-delete-progress-bar').removeClass('bg-danger').addClass('bg-success');
+        $('#batch-delete-progress-text').text(`Selesai: ${batchDeleteState.total} / ${batchDeleteState.total} Pengguna (100%)`);
+
+        $('#btn-pause-batch-delete').addClass('d-none');
+        $('#btn-finish-batch-delete').removeClass('d-none');
+        $('#btn-close-batch-delete-modal').prop('disabled', false);
+
+        appendBatchDeleteLog(`[Sistem] === EKSEKUSI SELESAI: ${batchDeleteState.success} Berhasil, ${batchDeleteState.failed} Gagal ===`, 'text-primary fw-bold');
+
+        tableDeviceUsers.ajax.reload(null, false);
+        tableCommands.ajax.reload(null, false);
+        $('#check-all-device-users').prop('checked', false);
+        updateBulkDeviceUserBtn();
+    }
 
     // ----------------------------------------------------
     // TAB 3: BATCH TAMBAHKAN SEMUA USER KE MESIN (ANTI-TIMEOUT & CHUNKED)

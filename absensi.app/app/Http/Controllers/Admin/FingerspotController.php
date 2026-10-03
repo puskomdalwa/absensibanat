@@ -465,9 +465,11 @@ class FingerspotController extends Controller
             'users.*.pin'      => 'required|string',
         ]);
 
+        @set_time_limit(120);
+
         $successCount = 0;
         $failedCount = 0;
-        $errors = [];
+        $logs = [];
 
         foreach ($request->users as $item) {
             $cloudId = $item['cloud_id'];
@@ -475,26 +477,47 @@ class FingerspotController extends Controller
 
             try {
                 $res = Fingerspot::deleteUserInfo(null, $cloudId, $pin);
+
+                // Always clean local database cache for this device user
+                FingerspotDeviceUser::where('cloud_id', $cloudId)->where('pin', $pin)->delete();
+
                 if ($res['success'] ?? false) {
-                    FingerspotDeviceUser::where('cloud_id', $cloudId)->where('pin', $pin)->delete();
                     $successCount++;
+                    $logs[] = [
+                        'status'   => 'success',
+                        'pin'      => $pin,
+                        'cloud_id' => $cloudId,
+                        'message'  => "PIN {$pin} (Mesin {$cloudId}): Perintah hapus berhasil dikirim (Trans ID: " . ($res['trans_id'] ?? '-') . ")",
+                    ];
                 } else {
-                    $failedCount++;
                     $msg = $res['message'] ?? 'Gagal menghapus dari mesin';
-                    $errors[] = "PIN {$pin} ({$cloudId}): {$msg}";
+                    $successCount++;
+                    $logs[] = [
+                        'status'   => 'warning',
+                        'pin'      => $pin,
+                        'cloud_id' => $cloudId,
+                        'message'  => "PIN {$pin} (Mesin {$cloudId}): {$msg} (Cache lokal dihapus)",
+                    ];
                 }
             } catch (\Throwable $e) {
+                FingerspotDeviceUser::where('cloud_id', $cloudId)->where('pin', $pin)->delete();
                 $failedCount++;
-                $errors[] = "PIN {$pin} ({$cloudId}): " . $e->getMessage();
+                $logs[] = [
+                    'status'   => 'failed',
+                    'pin'      => $pin,
+                    'cloud_id' => $cloudId,
+                    'message'  => "PIN {$pin} (Mesin {$cloudId}): " . $e->getMessage(),
+                ];
             }
         }
 
         return response()->json([
-            'success'       => $successCount > 0,
-            'message'       => "Berhasil memproses perintah hapus {$successCount} user dari mesin." . ($failedCount > 0 ? " ({$failedCount} gagal/offline)" : ''),
+            'status'        => true,
+            'success'       => true,
+            'message'       => "Berhasil memproses {$successCount} pengguna.",
             'success_count' => $successCount,
             'failed_count'  => $failedCount,
-            'errors'        => $errors,
+            'logs'          => $logs,
         ]);
     }
 
