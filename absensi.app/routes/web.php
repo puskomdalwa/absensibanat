@@ -216,6 +216,9 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,staff'])->group(function
         Route::get('/commands/data', [FingerspotController::class, 'commandsData'])->name('admin.fingerspot.commands.data');
         Route::get('/commands/detail', [FingerspotController::class, 'commandDetail'])->name('admin.fingerspot.commands.detail');
         Route::post('/commands/clear', [FingerspotController::class, 'clearCommands'])->name('admin.fingerspot.commands.clear');
+        Route::post('/commands/sync-status', [FingerspotController::class, 'syncCommandStatus'])->name('admin.fingerspot.commands.sync_status');
+        Route::post('/commands/mark-success', [FingerspotController::class, 'markCommandSuccess'])->name('admin.fingerspot.commands.mark_success');
+        Route::post('/devices/test-active', [FingerspotController::class, 'deviceTestActive'])->name('admin.fingerspot.devices.test_active');
 
         // API Playground & Tester
         Route::post('/api/test', [FingerspotController::class, 'testApi'])->name('admin.fingerspot.api.test');

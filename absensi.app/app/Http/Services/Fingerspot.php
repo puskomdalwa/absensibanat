@@ -100,8 +100,22 @@ class Fingerspot
                     'status'           => $isSuccess ? 'success' : 'failed',
                     'message'          => $isSuccess ? 'Berhasil dieksekusi secara sinkron' : ($responseBody['message'] ?? 'API error'),
                 ]);
+            } elseif ($commandType === 'delete_userinfo') {
+                // delete_userinfo: Fingerspot Cloud immediately queues the deletion task to the device.
+                // The cloud does not emit separate webhook callbacks for delete, so cloud acknowledgment is considered successful.
+                $commandRecord->update([
+                    'payload_response' => $responseBody,
+                    'status'           => $isSuccess ? 'success' : 'failed',
+                    'message'          => $isSuccess ? 'Perintah berhasil diterima antrean cloud & dikirim ke mesin' : ($responseBody['message'] ?? 'API error'),
+                ]);
+            } elseif (in_array($commandType, ['set_time', 'restart_device'])) {
+                $commandRecord->update([
+                    'payload_response' => $responseBody,
+                    'status'           => $isSuccess ? 'success' : 'failed',
+                    'message'          => $isSuccess ? 'Perintah berhasil diterima cloud & dikirim ke mesin' : ($responseBody['message'] ?? 'API error'),
+                ]);
             } else {
-                // Asynchronous commands: response is acknowledgment only
+                // Asynchronous commands waiting for payload data callback (get_all_pin, get_userinfo, reg_online, set_userinfo)
                 $commandRecord->update([
                     'payload_response' => $responseBody,
                     'status'           => $isSuccess ? 'pending' : 'failed',

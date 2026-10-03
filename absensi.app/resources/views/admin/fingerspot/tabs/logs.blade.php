@@ -6,7 +6,10 @@
                 Audit trail lengkap seluruh aktivitas API, perintah remote mesin, serta callback webhook real-time yang diterima dari server Fingerspot.
             </p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-outline-success btn-sm waves-effect" id="btn-sync-command-status" title="Perbarui status perintah delete_userinfo / remote yang pending menjadi Sukses jika telah dikonfirmasi antrean cloud">
+                <i class="ti ti-check-double me-1"></i> Sinkronkan Status Pending
+            </button>
             <button type="button" class="btn btn-outline-danger btn-sm waves-effect" id="btn-clear-command-logs">
                 <i class="ti ti-trash me-1"></i> Bersihkan Log
             </button>

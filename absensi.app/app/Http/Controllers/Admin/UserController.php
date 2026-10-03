@@ -6,7 +6,9 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\Departemen;
 use App\Models\Type;
+use App\Models\Device;
 use App\Models\FingerspotDeviceUser;
+use App\Http\Services\Fingerspot;
 use Illuminate\Http\Request;
 use App\Http\Services\BulkData;
 use App\Imports\MainUserImport;
@@ -401,6 +403,17 @@ class UserController extends Controller
             $data->delete();
 
             DB::commit();
+
+            // Dispatch delete command to all physical devices (Mesin 1 & Mesin 2)
+            try {
+                $devices = Device::all();
+                foreach ($devices as $dev) {
+                    Fingerspot::deleteUserInfo(null, $dev->cloud_id, (string)$data->id);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[UserController::delete] Failed to send delete_userinfo to device: ' . $e->getMessage());
+            }
+
             return [
                 'status'  => true,
                 'type'    => 'success',
@@ -479,6 +492,18 @@ class UserController extends Controller
             }
 
             DB::commit();
+
+            // Dispatch delete_userinfo to all physical devices (Mesin 1 & Mesin 2)
+            try {
+                $devices = Device::all();
+                foreach ($deletedPins as $pin) {
+                    foreach ($devices as $dev) {
+                        Fingerspot::deleteUserInfo(null, $dev->cloud_id, (string)$pin);
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[UserController::bulkDelete] Failed to dispatch delete_userinfo to devices: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'status'        => true,

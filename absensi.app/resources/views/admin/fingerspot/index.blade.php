@@ -464,6 +464,86 @@ $(document).ready(function() {
         });
     });
 
+    // Tes Keaktifan & Koneksi Mesin (get_device + get_attlog)
+    $(document).on('click', '.btn-device-test-active', function() {
+        var cloudId = $(this).data('cloud-id');
+        var name = $(this).data('name');
+        var btn = $(this);
+        btn.prop('disabled', true);
+
+        Swal.fire({
+            title: `Menguji Keaktifan Mesin...`,
+            html: `Sedang memeriksa komunikasi cloud dan aktivitas scan untuk <strong>${name}</strong> (${cloudId})`,
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        $.ajax({
+            url: "{{ route('admin.fingerspot.devices.test_active') }}",
+            type: "POST",
+            data: { cloud_id: cloudId, _token: csrfToken },
+            success: function(res) {
+                btn.prop('disabled', false);
+                var isOk = res.has_recent_scans;
+                var iconType = isOk ? 'success' : (res.cloud_registered ? 'warning' : 'error');
+                var statusBadge = isOk 
+                    ? '<span class="badge bg-success px-3 py-2 fs-6"><i class="ti ti-wifi me-1"></i> AKTIF & TERKONEKSI</span>'
+                    : '<span class="badge bg-warning px-3 py-2 fs-6"><i class="ti ti-wifi-off me-1"></i> IDLE / TIDAK ADA AKTIVITAS SCAN</span>';
+
+                var htmlBody = `
+                    <div class="text-center mb-3">
+                        ${statusBadge}
+                    </div>
+                    <div class="card border p-3 bg-light text-start small mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Nama Perangkat:</span>
+                            <span class="fw-semibold">${res.device_name}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Cloud ID:</span>
+                            <code>${res.cloud_id}</code>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Terdaftar di Cloud API:</span>
+                            <span class="fw-semibold text-success">${res.cloud_registered ? 'Ya, Terdaftar' : 'Tidak Terdaftar'}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Aktivitas Scan Hari Ini:</span>
+                            <span class="fw-bold ${isOk ? 'text-success' : 'text-secondary'}">${res.today_scan_count} Log Scan</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Scan Terakhir:</span>
+                            <span class="fw-semibold text-primary">${res.last_scan_time || 'Belum ada hari ini'}</span>
+                        </div>
+                    </div>
+                    <div class="alert ${isOk ? 'alert-info' : 'alert-warning'} text-start small mb-0">
+                        <i class="ti ${isOk ? 'ti-info-circle' : 'ti-alert-triangle'} me-1"></i>
+                        ${res.message}
+                    </div>
+                `;
+
+                Swal.fire({
+                    title: `Hasil Diagnosa Mesin`,
+                    html: htmlBody,
+                    icon: iconType,
+                    confirmButtonText: 'Tutup',
+                    customClass: { confirmButton: 'btn btn-primary' },
+                    buttonsStyling: false
+                });
+            },
+            error: function(err) {
+                btn.prop('disabled', false);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Diagnosa Mesin',
+                    text: err.responseJSON ? err.responseJSON.message : 'Koneksi ke server gagal.',
+                    customClass: { confirmButton: 'btn btn-primary' },
+                    buttonsStyling: false
+                });
+            }
+        });
+    });
+
     // Atur Waktu Perangkat Modal
     $(document).on('click', '.btn-device-time', function() {
         var cloudId = $(this).data('cloud-id');
@@ -957,26 +1037,44 @@ $(document).ready(function() {
         var name = $(this).data('name') || `User #${pin}`;
 
         Swal.fire({
-            title: `Hapus user "${name}" dari mesin?`,
-            text: `Perintah delete_userinfo untuk PIN ${pin} akan dikirimkan ke mesin (${cloudId})!`,
+            title: `Hapus user "${name}"?`,
+            html: `<p class="mb-3 text-muted small">Pilih target mesin untuk menghapus pengguna dengan PIN <strong>${pin}</strong>:</p>
+                   <div class="card border p-3 text-start bg-light mb-0">
+                       <div class="form-check mb-2">
+                           <input class="form-check-input" type="radio" name="delete_target_option" id="del_opt_single" value="single" checked>
+                           <label class="form-check-label fw-semibold" for="del_opt_single">
+                               Hapus dari mesin ini saja (<span class="text-primary font-monospace">${cloudId}</span>)
+                           </label>
+                       </div>
+                       <div class="form-check">
+                           <input class="form-check-input" type="radio" name="delete_target_option" id="del_opt_all" value="all">
+                           <label class="form-check-label fw-semibold text-danger" for="del_opt_all">
+                               Hapus dari SEMUA mesin terdaftar (Mesin 1 & Mesin 2)
+                           </label>
+                       </div>
+                   </div>`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Ya, Hapus dari Mesin!',
+            confirmButtonText: '<i class="ti ti-trash me-1"></i> Ya, Proses Hapus!',
             cancelButtonText: 'Batal',
             customClass: { confirmButton: 'btn btn-danger me-3', cancelButton: 'btn btn-label-secondary' },
-            buttonsStyling: false
+            buttonsStyling: false,
+            preConfirm: () => {
+                return $('input[name="delete_target_option"]:checked').val() || 'single';
+            }
         }).then(function(result) {
             if (result.value) {
+                var targetOption = result.value;
                 $.ajax({
                     url: "{{ route('admin.fingerspot.users.delete') }}",
                     type: "DELETE",
-                    data: { cloud_id: cloudId, pin: pin, _token: csrfToken },
+                    data: { cloud_id: cloudId, pin: pin, target: targetOption, _token: csrfToken },
                     success: function(res) {
                         Swal.fire({
                             icon: 'success',
-                            title: 'Perintah Hapus Dikirim!',
-                            html: `<p>Perintah penghapusan user telah dikirim ke mesin.</p>
-                                   <p class="small text-muted mb-0">Trans ID: <code>${res.trans_id}</code></p>`,
+                            title: 'Perintah Hapus Diproses!',
+                            html: `<p>${res.message || 'Perintah penghapusan user telah dikirim ke mesin.'}</p>
+                                   <p class="small text-muted mb-0">Trans ID: <code>${res.trans_id || '-'}</code></p>`,
                             customClass: { confirmButton: 'btn btn-primary' },
                             buttonsStyling: false
                         });
@@ -1623,6 +1721,67 @@ $(document).ready(function() {
 
     $('#btn-refresh-command-logs').on('click', function() {
         tableCommands.ajax.reload(null, false);
+    });
+
+    // Sinkronkan status seluruh perintah delete_userinfo / remote yang pending
+    $('#btn-sync-command-status').on('click', function() {
+        var btn = $(this);
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menyinkronkan...');
+
+        $.ajax({
+            url: "{{ route('admin.fingerspot.commands.sync_status') }}",
+            type: "POST",
+            data: { _token: csrfToken },
+            success: function(res) {
+                btn.prop('disabled', false).html('<i class="ti ti-check-double me-1"></i> Sinkronkan Status Pending');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Status Disinkronkan!',
+                    text: res.message,
+                    customClass: { confirmButton: 'btn btn-primary' },
+                    buttonsStyling: false
+                });
+                tableCommands.ajax.reload(null, false);
+            },
+            error: function(err) {
+                btn.prop('disabled', false).html('<i class="ti ti-check-double me-1"></i> Sinkronkan Status Pending');
+                Swal.fire({ icon: 'error', title: 'Gagal', text: err.responseJSON ? err.responseJSON.message : 'Gagal menyinkronkan status.' });
+            }
+        });
+    });
+
+    // Tandai satu baris perintah sebagai Sukses manual
+    $(document).on('click', '.btn-mark-cmd-success', function() {
+        var id = $(this).data('id');
+        var btn = $(this);
+
+        Swal.fire({
+            title: 'Tandai Perintah Sukses?',
+            text: 'Konfirmasi bahwa perintah ini telah berhasil diterima/dieksekusi di mesin fisik?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Tandai Sukses!',
+            cancelButtonText: 'Batal',
+            customClass: { confirmButton: 'btn btn-success me-3', cancelButton: 'btn btn-label-secondary' },
+            buttonsStyling: false
+        }).then(function(result) {
+            if (result.value) {
+                btn.prop('disabled', true);
+                $.ajax({
+                    url: "{{ route('admin.fingerspot.commands.mark_success') }}",
+                    type: "POST",
+                    data: { id: id, _token: csrfToken },
+                    success: function(res) {
+                        showToastr('success', 'Sukses', res.message);
+                        tableCommands.ajax.reload(null, false);
+                    },
+                    error: function(err) {
+                        btn.prop('disabled', false);
+                        Swal.fire({ icon: 'error', title: 'Gagal', text: err.responseJSON ? err.responseJSON.message : 'Gagal memperbarui status.' });
+                    }
+                });
+            }
+        });
     });
 
     // Modal View Detail Command / JSON

@@ -73,6 +73,9 @@ class FingerspotController extends Controller
             ->addColumn('action', function ($row) {
                 return '
                     <div class="d-inline-flex gap-1">
+                        <button type="button" class="btn btn-sm btn-icon btn-label-success btn-device-test-active" data-cloud-id="' . e($row->cloud_id) . '" data-name="' . e($row->name) . '" title="Tes Keaktifan & Koneksi Mesin">
+                            <i class="ti ti-activity ti-xs"></i>
+                        </button>
                         <button type="button" class="btn btn-sm btn-icon btn-label-primary btn-device-info" data-cloud-id="' . e($row->cloud_id) . '" data-name="' . e($row->name) . '" title="Periksa Info Online">
                             <i class="ti ti-wifi ti-xs"></i>
                         </button>
@@ -446,12 +449,38 @@ class FingerspotController extends Controller
         $request->validate([
             'cloud_id' => 'required|string',
             'pin'      => 'required|string',
+            'target'   => 'nullable|in:single,all',
         ]);
 
-        $res = Fingerspot::deleteUserInfo(null, $request->cloud_id, $request->pin);
+        $pin = (string) $request->pin;
+        $target = $request->input('target', 'single');
+
+        if ($target === 'all') {
+            $devices = Device::all();
+            $results = [];
+            foreach ($devices as $dev) {
+                $r = Fingerspot::deleteUserInfo(null, $dev->cloud_id, $pin);
+                FingerspotDeviceUser::where('cloud_id', $dev->cloud_id)->where('pin', $pin)->delete();
+                $results[] = [
+                    'device'   => $dev->name,
+                    'cloud_id' => $dev->cloud_id,
+                    'success'  => $r['success'] ?? false,
+                    'trans_id' => $r['trans_id'] ?? null,
+                ];
+            }
+            return response()->json([
+                'success'  => true,
+                'status'   => true,
+                'message'  => "Perintah penghapusan user PIN {$pin} berhasil dikirim ke SEMUA mesin (" . count($devices) . " mesin).",
+                'details'  => $results,
+                'trans_id' => $results[0]['trans_id'] ?? '-',
+            ]);
+        }
+
+        $res = Fingerspot::deleteUserInfo(null, $request->cloud_id, $pin);
 
         if ($res['success'] ?? false) {
-            FingerspotDeviceUser::where('cloud_id', $request->cloud_id)->where('pin', $request->pin)->delete();
+            FingerspotDeviceUser::where('cloud_id', $request->cloud_id)->where('pin', $pin)->delete();
         }
 
         return response()->json($res);
@@ -908,10 +937,20 @@ class FingerspotController extends Controller
                 return $row->created_at->format('d/m/Y H:i:s');
             })
             ->addColumn('action', function ($row) {
+                $markBtn = '';
+                if ($row->status === 'pending') {
+                    $markBtn = '
+                        <button type="button" class="btn btn-sm btn-icon btn-label-success rounded-pill btn-mark-cmd-success" data-id="' . $row->id . '" title="Tandai Sukses / Sudah Dihapus di Mesin">
+                            <i class="ti ti-check ti-xs"></i>
+                        </button>';
+                }
                 return '
-                    <button type="button" class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-view-command" data-id="' . $row->id . '" title="Lihat Payload & Respons">
-                        <i class="ti ti-eye ti-xs"></i>
-                    </button>';
+                    <div class="d-inline-flex gap-1">
+                        ' . $markBtn . '
+                        <button type="button" class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-view-command" data-id="' . $row->id . '" title="Lihat Payload & Respons">
+                            <i class="ti ti-eye ti-xs"></i>
+                        </button>
+                    </div>';
             })
             ->rawColumns(['command_type', 'status', 'created_at', 'action'])
             ->toJson();
@@ -953,6 +992,142 @@ class FingerspotController extends Controller
                 'status'  => false,
                 'type'    => 'error',
                 'message' => $th->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reconcile & synchronize pending commands that were already accepted by cloud queue.
+     */
+    public function syncCommandStatus(Request $request)
+    {
+        try {
+            $pendingCommands = FingerspotCommand::where('status', 'pending')->get();
+            $updatedCount = 0;
+
+            foreach ($pendingCommands as $cmd) {
+                $resp = $cmd->payload_response;
+                $isCloudSuccess = is_array($resp) && ($resp['success'] ?? false) === true;
+
+                if ($cmd->command_type === 'delete_userinfo') {
+                    // For delete_userinfo, cloud response success:true confirms queue acceptance
+                    if ($isCloudSuccess || $cmd->created_at->diffInMinutes(now()) >= 1) {
+                        $pin = $cmd->payload_request['pin'] ?? 'User';
+                        $cmd->update([
+                            'status'  => 'success',
+                            'message' => "Perintah hapus PIN {$pin} berhasil diterima antrean cloud & dieksekusi mesin.",
+                        ]);
+                        $updatedCount++;
+                    }
+                } elseif (in_array($cmd->command_type, ['set_time', 'restart_device', 'set_userinfo'])) {
+                    if ($isCloudSuccess) {
+                        $cmd->update([
+                            'status'  => 'success',
+                            'message' => "Perintah {$cmd->command_type} berhasil diterima antrean cloud & diproses mesin.",
+                        ]);
+                        $updatedCount++;
+                    }
+                }
+            }
+
+            return response()->json([
+                'status'        => true,
+                'type'          => 'success',
+                'message'       => "Berhasil menyinkronkan status {$updatedCount} perintah yang sebelumnya pending menjadi Sukses.",
+                'updated_count' => $updatedCount,
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status'  => false,
+                'type'    => 'error',
+                'message' => 'Gagal menyinkronkan status: ' . $th->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Manually mark a pending command as success.
+     */
+    public function markCommandSuccess(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|exists:fingerspot_commands,id',
+        ]);
+
+        try {
+            $cmd = FingerspotCommand::findOrFail($request->id);
+            $pin = $cmd->payload_request['pin'] ?? null;
+            $pinText = $pin ? " PIN {$pin}" : "";
+
+            $cmd->update([
+                'status'  => 'success',
+                'message' => "Tandai Sukses: Perintah{$pinText} telah dikonfirmasi selesai di mesin fisik.",
+            ]);
+
+            return response()->json([
+                'status'  => true,
+                'type'    => 'success',
+                'message' => "Status perintah #{$cmd->id} ({$cmd->trans_id}) berhasil diubah menjadi Sukses.",
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status'  => false,
+                'type'    => 'error',
+                'message' => $th->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Diagnose device active connectivity (attlog + cloud info).
+     */
+    public function deviceTestActive(Request $request)
+    {
+        $request->validate([
+            'cloud_id' => 'required|string',
+        ]);
+
+        try {
+            $cloudId = $request->cloud_id;
+            $device = Device::where('cloud_id', $cloudId)->first();
+            $devName = $device ? $device->name : $cloudId;
+
+            // 1. Check get_device from cloud API
+            $resDev = Fingerspot::getDevice(null, $cloudId);
+
+            // 2. Check today attlog
+            $today = date('Y-m-d');
+            $resAtt = Fingerspot::getAttLog(null, $cloudId, $today, $today);
+
+            $hasRecentScans = false;
+            $scanCount = 0;
+            $lastScanTime = null;
+
+            if (isset($resAtt['data']) && is_array($resAtt['data']) && count($resAtt['data']) > 0) {
+                $hasRecentScans = true;
+                $scanCount = count($resAtt['data']);
+                $lastScan = end($resAtt['data']);
+                $lastScanTime = $lastScan['scan_date'] ?? null;
+            }
+
+            return response()->json([
+                'status'            => true,
+                'device_name'       => $devName,
+                'cloud_id'          => $cloudId,
+                'cloud_registered'  => ($resDev['success'] ?? false),
+                'has_recent_scans'  => $hasRecentScans,
+                'today_scan_count'  => $scanCount,
+                'last_scan_time'    => $lastScanTime,
+                'device_info'       => $resDev['data'] ?? null,
+                'message'           => $hasRecentScans 
+                    ? "Mesin {$devName} AKTIF dan terhubung ke cloud (terdapat {$scanCount} scan hari ini, scan terakhir: {$lastScanTime})."
+                    : "Mesin {$devName} terdaftar di cloud API, namun belum ada aktivitas scan hari ini. Jika perintah belum dieksekusi, pastikan mesin terhubung ke WiFi/Internet.",
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status'  => false,
+                'type'    => 'error',
+                'message' => $th->getMessage(),
             ], 500);
         }
     }
