@@ -10,8 +10,11 @@
             <button type="button" class="btn btn-outline-primary btn-sm waves-effect" id="btn-fetch-all-pin">
                 <i class="ti ti-download me-1"></i> Ambil Semua PIN dari Mesin
             </button>
-            <button type="button" class="btn btn-primary btn-sm waves-effect waves-light" data-bs-toggle="modal" data-bs-target="#modal-push-user">
-                <i class="ti ti-user-plus me-1"></i> Daftarkan User ke Mesin
+            <button type="button" class="btn btn-label-secondary btn-sm waves-effect" data-bs-toggle="modal" data-bs-target="#modal-push-user">
+                <i class="ti ti-user-plus me-1"></i> Daftarkan User Manual
+            </button>
+            <button type="button" class="btn btn-primary btn-sm waves-effect waves-light" id="btn-batch-push-users">
+                <i class="ti ti-users-plus me-1"></i> Tambahkan Semua User ke Mesin
             </button>
         </div>
     </div>
