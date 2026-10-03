@@ -40,11 +40,13 @@
                             Telusuri profil presensi dosen, ustadzah, dan staf Kampus Banat UII Dalwa. Klik kartu civitas untuk melihat catatan kehadiran harian secara mendalam.
                         </p>
                     </div>
+                    @if (!\Auth::check() || \Auth::user()->isAdmin())
                     <div class="col-lg-4 text-lg-end">
                         <a href="{{ url('/realtime') }}" class="btn-banat-outline py-2 px-3 text-decoration-none">
                             <i class="fa-solid fa-tower-broadcast me-1"></i> Lihat Absensi Realtime
                         </a>
                     </div>
+                    @endif
                 </div>
             </div>
 

@@ -44,13 +44,15 @@
 
                             <!-- Hero Call-to-Action Buttons -->
                             <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start align-items-center">
-                                <a href="{{ url('/dashboard') }}" class="btn-banat-primary">
+                                <a href="{{ \Auth::check() && \Auth::user()->hasRole('admin', 'staff') ? url('/admin/dashboard') : url('/dashboard') }}" class="btn-banat-primary">
                                     <i class="fa-solid fa-gauge-high"></i> Dashboard
                                 </a>
+                                @if (!\Auth::check() || \Auth::user()->isAdmin())
                                 <a href="{{ url('/realtime') }}" class="btn-banat-outline" 
                                    style="background: rgba(255, 255, 255, 0.15) !important; color: #ffffff !important; border-color: rgba(255, 255, 255, 0.35) !important;">
                                     <i class="fa-solid fa-tower-broadcast me-1"></i> Absensi Realtime
                                 </a>
+                                @endif
                                 <a href="#fitur-3d" class="btn-banat-outline" 
                                    style="background: rgba(255, 255, 255, 0.15) !important; color: #ffffff !important; border-color: rgba(255, 255, 255, 0.35) !important;">
                                     <i class="fa-solid fa-cube me-1"></i> Eksplorasi 3D
@@ -295,24 +297,24 @@
                 <p class="text-muted">Pantau rekapitulasi kehadiran civitas akademik UII Dalwa Kampus Banat</p>
             </div>
 
-            <!-- Tab Switcher -->
-            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom" style="border-color: var(--banat-border) !important;">
-                <ul class="nav nav-pills gap-2" id="myTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="btn btn-banat-outline active" id="nav-tab-dosen" data-bs-toggle="tab" data-bs-target="#tab-dosen"
+            <!-- Tab Switcher (Responsive for Desktop & Mobile) -->
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-3 mb-4 pb-3 border-bottom" style="border-color: var(--banat-border) !important;">
+                <ul class="nav nav-pills d-flex flex-row flex-wrap gap-2 mb-0" id="myTab" role="tablist">
+                    <li class="nav-item flex-fill flex-sm-grow-0" role="presentation">
+                        <button class="btn btn-banat-outline w-100 active text-nowrap" id="nav-tab-dosen" data-bs-toggle="tab" data-bs-target="#tab-dosen"
                             type="button" role="tab" aria-controls="tab-dosen" aria-selected="true">
                             <i class="fa-solid fa-chalkboard-user me-1"></i> Dosen & Pengajar
                         </button>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="btn btn-banat-outline" id="nav-tab-staff" data-bs-toggle="tab" data-bs-target="#tab-staff"
+                    <li class="nav-item flex-fill flex-sm-grow-0" role="presentation">
+                        <button class="btn btn-banat-outline w-100 text-nowrap" id="nav-tab-staff" data-bs-toggle="tab" data-bs-target="#tab-staff"
                             type="button" role="tab" aria-controls="tab-staff" aria-selected="false">
                             <i class="fa-solid fa-id-card-clip me-1"></i> Staf Akademik
                         </button>
                     </li>
                 </ul>
-                <a href="{{ route('absensi.index') }}" class="btn-banat-outline text-decoration-none d-none d-sm-inline-flex">
-                    Lihat Semua <i class="fa-solid fa-arrow-right ms-1"></i>
+                <a href="{{ route('absensi.index') }}" class="btn-banat-outline text-decoration-none d-inline-flex align-items-center justify-content-center text-nowrap">
+                    <span>Lihat Semua</span> <i class="fa-solid fa-arrow-right ms-2"></i>
                 </a>
             </div>
 
@@ -331,6 +333,13 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Mobile Action Button at Bottom of Tab Content -->
+            <div class="text-center mt-3 pt-2 d-block d-sm-none">
+                <a href="{{ route('absensi.index') }}" class="btn-banat-outline w-100 py-2 text-decoration-none d-inline-flex align-items-center justify-content-center">
+                    <span>Lihat Seluruh Civitas Akademika</span> <i class="fa-solid fa-arrow-right ms-2"></i>
+                </a>
             </div>
         </div>
     </section>

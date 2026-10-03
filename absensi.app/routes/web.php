@@ -57,6 +57,7 @@ Route::redirect('/index.html', '/');
 Route::get('/privacy_policy', [PrivacyPolicyController::class, 'index'])->name('privacy_policy.index');
 
 Route::get('/getData', [LandingPageController::class, 'getData'])->name('root.getData');
+Route::get('/search-civitas', [LandingPageController::class, 'searchCivitas'])->name('root.searchCivitas');
 
 Route::prefix('absensi')->group(function () {
     Route::get('/', [HomeAbsensiController::class, 'index'])->name('absensi.index');
