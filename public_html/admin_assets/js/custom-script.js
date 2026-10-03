@@ -17,12 +17,21 @@ function ajaxRequestDt(e, offCanvasRecord, dataTable) {
         },
         success: function (response) {
             showToastr(response.type, response.type, response.message);
-            if (offCanvasRecord != false) {
-                offCanvasRecord.hide();
+            if (response.status !== false && response.type !== "error") {
+                if (offCanvasRecord != false) {
+                    offCanvasRecord.hide();
+                }
+                if (typeof dataTable !== "undefined" && dataTable !== null) {
+                    dataTable.ajax.reload(null, false);
+                }
             }
-            if (typeof dataTable !== "undefined" && dataTable !== null) {
-                dataTable.ajax.reload(null, false);
+        },
+        error: function (xhr) {
+            var msg = "Terjadi kesalahan saat memproses data.";
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                msg = xhr.responseJSON.message;
             }
+            showToastr("error", "ERROR", msg);
         },
     });
 }
@@ -45,8 +54,17 @@ function ajaxRequestWithRefresh(e, offCanvasRecord) {
         },
         success: function (response) {
             showToastr(response.type, response.type, response.message);
-            offCanvasRecord.hide();
-            location.reload();
+            if (response.status !== false && response.type !== "error") {
+                if (offCanvasRecord) offCanvasRecord.hide();
+                location.reload();
+            }
+        },
+        error: function (xhr) {
+            var msg = "Terjadi kesalahan saat memproses data.";
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                msg = xhr.responseJSON.message;
+            }
+            showToastr("error", "ERROR", msg);
         },
     });
 }
@@ -69,6 +87,13 @@ function ajaxRequest(e) {
         },
         success: function (response) {
             showToastr(response.type, response.type, response.message);
+        },
+        error: function (xhr) {
+            var msg = "Terjadi kesalahan saat memproses data.";
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                msg = xhr.responseJSON.message;
+            }
+            showToastr("error", "ERROR", msg);
         },
     });
 }

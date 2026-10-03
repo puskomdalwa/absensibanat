@@ -9,11 +9,13 @@
             enctype="multipart/form-data">
             @csrf
             <div class="col-sm-12">
-                <label class="form-label" for="id">ID</label>
+                <label class="form-label" for="id">ID Civitas</label>
                 <div class="input-group input-group-merge">
-                    <input type="text" class="form-control" name="id" placeholder="Type here..."
-                        aria-label="Type here..." aria-describedby="id2" required />
+                    <span class="input-group-text"><i class="ti ti-id"></i></span>
+                    <input type="number" class="form-control" name="id" placeholder="Otomatis jika dikosongkan..."
+                        aria-label="ID Civitas" aria-describedby="id2" />
                 </div>
+                <div class="form-text text-muted" style="font-size: 0.75rem;">Bisa diisi manual (PIN mesin/civitas) atau dikosongkan untuk ID otomatis.</div>
             </div>
             @include('admin.user.form', ['showPassword' => true, 'passwordRequired' => true])
             <div class="col-sm-12 mt-4">

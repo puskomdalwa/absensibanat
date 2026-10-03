@@ -2,8 +2,11 @@
 namespace App\Http\Services;
 
 use App\Models\Departemen;
-use App\Models\Jadwal;
-use App\Models\Tahun;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class Helper
 {
@@ -84,7 +87,7 @@ class Helper
         $charactersToReplace = ['\\', '/', ':', '*', '?', '<', '>', '|'];
         $replacement = '-';
 
-        $newString = \Str::replace($charactersToReplace, $replacement, $string);
+        $newString = Str::replace($charactersToReplace, $replacement, $string);
         return $newString;
     }
 
@@ -102,7 +105,7 @@ class Helper
      */
     public static function getEnumValues($table, $column, $deleteColumn = false)
     {
-        $type = \DB::select(\DB::raw("SHOW COLUMNS FROM $table WHERE Field = '$column'"))[0]->Type;
+        $type = DB::select(DB::raw("SHOW COLUMNS FROM $table WHERE Field = '$column'"))[0]->Type;
         preg_match('/^enum\((.*)\)$/', $type, $matches);
         $enum = [];
 
@@ -156,8 +159,8 @@ class Helper
         $charactersToReplace = ['\\', '/', ':', '*', '?', '<', '>', '|', '-', '_'];
         $replacement = ' ';
 
-        $newString = \Str::replace($charactersToReplace, $replacement, $string);
-        return \Str::upper($newString);
+        $newString = Str::replace($charactersToReplace, $replacement, $string);
+        return Str::upper($newString);
     }
 
     public static function removeSpecialCharacters($string)
@@ -169,44 +172,24 @@ class Helper
 
     public function checkRegister()
     {
-        $tahun = Tahun::aktif();
-
-        $jadwal = Jadwal::where('tahun_id', $tahun->id)->first();
-
-        $mulai = \Carbon::parse($jadwal->mulai)->startOfDay();
-        $berakhir = \Carbon::parse($jadwal->berakhir)->endOfDay();
-        $sekarang = \Carbon::now();
-
-        $dibuka = true;
-        if ($sekarang->lt($mulai) || $sekarang->gt($berakhir)) {
-            $dibuka = false;
-        }
-
-        return $dibuka;
+        return true;
     }
 
     public static function generateRandomString($length = 8)
     {
         return rand(12345, 54321);
-        // $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        // $charactersLength = strlen($characters);
-        // $randomString = '';
-        // for ($i = 0; $i < $length; $i++) {
-        //     $randomString .= $characters[rand(0, $charactersLength - 1)];
-        // }
-        // return $randomString;
     }
 
     public static function getTheme()
     {
-        $theme = \Cookie::get('theme');
+        $theme = Cookie::get('theme');
         $theme = $theme ? $theme : 'light';
         return $theme;
     }
 
     public static function setTheme($theme)
     {
-        \Cookie::queue(\Cookie::forever('theme', $theme));
+        Cookie::queue(Cookie::forever('theme', $theme));
         return 'success';
     }
 
@@ -224,6 +207,9 @@ class Helper
                 break;
             case 'Tidak Hadir':
                 $color = 'danger';
+                break;
+            default:
+                $color = 'secondary';
                 break;
         }
 

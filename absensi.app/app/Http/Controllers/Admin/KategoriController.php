@@ -71,7 +71,7 @@ class KategoriController extends Controller
     public function store(Request $request)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $request->validate([
                 'nama' => 'required|string|max:255',
                 'kode' => 'required|string|max:255|unique:kategori,kode',
@@ -88,14 +88,14 @@ class KategoriController extends Controller
                 'keterangan',
             ]));
 
-            \DB::commit();
+            DB::commit();
             return [
                 'status' => true,
                 'type' => 'success',
                 'message' => 'Success',
             ];
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'type' => 'error',
@@ -103,7 +103,7 @@ class KategoriController extends Controller
                 'req' => $request->all(),
             ]);
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return [
                 'status' => false,
                 'type' => 'error',
@@ -115,7 +115,7 @@ class KategoriController extends Controller
     public function update(Request $request)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $kategori = Kategori::findOrFail($request->id);
 
             $request->validate([
@@ -135,14 +135,14 @@ class KategoriController extends Controller
                 'keterangan',
             ]));
 
-            \DB::commit();
+            DB::commit();
             return [
                 'status' => true,
                 'type' => 'success',
                 'message' => 'Success',
             ];
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'type' => 'error',
@@ -150,7 +150,7 @@ class KategoriController extends Controller
                 'req' => $request->all(),
             ]);
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return [
                 'status' => false,
                 'type' => 'error',
@@ -162,14 +162,14 @@ class KategoriController extends Controller
     public function delete(Request $request)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $request->validate([
                 'id' => 'required|exists:kategori,id',
             ]);
 
             Kategori::findOrFail($request->id)->delete();
 
-            \DB::commit();
+            DB::commit();
             return [
                 'status' => true,
                 'type' => 'success',
@@ -177,7 +177,7 @@ class KategoriController extends Controller
                 'request' => $request->all(),
             ];
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return [
                 'status' => false,
                 'type' => 'error',

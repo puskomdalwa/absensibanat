@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Models\Role;
 use App\Models\Player;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Http\Services\BulkData;
 use Yajra\DataTables\DataTables;
 use App\Http\Controllers\Controller;
@@ -61,7 +62,7 @@ class RoleController extends Controller
     public function store(Request $request)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $request->validate([
                 'akses' => 'required|unique:role',
             ]);
@@ -70,14 +71,14 @@ class RoleController extends Controller
             $role->akses = $request->akses;
             $role->save();
 
-            \DB::commit();    
+            DB::commit();    
             return [
                 'status' => true,
                 'type' => 'success',
                 'message' => 'Success'
             ];
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'type' => 'error',
@@ -85,7 +86,7 @@ class RoleController extends Controller
                 'req' => $request->all()
             ]);
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return [
                 'status' => false,
                 'type' => 'error',
@@ -97,7 +98,7 @@ class RoleController extends Controller
     public function update(Request $request)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $role = Role::findOrFail($request->id);
 
             $request->validate([
@@ -108,14 +109,14 @@ class RoleController extends Controller
             $role->akses = $request->akses;
             $role->save();
 
-            \DB::commit();
+            DB::commit();
             return [
                 'status' => true,
                 'type' => 'success',
                 'message' => 'Success'
             ];
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'type' => 'error',
@@ -123,7 +124,7 @@ class RoleController extends Controller
                 'req' => $request->all()
             ]);
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return [
                 'status' => false,
                 'type' => 'error',
@@ -135,7 +136,7 @@ class RoleController extends Controller
     public function delete(Request $request)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $request->validate([
                 'id' => 'required',
             ]);
@@ -143,7 +144,7 @@ class RoleController extends Controller
             $data = Role::findOrFail($request->id);
             $data->delete();
 
-            \DB::commit();
+            DB::commit();
             return [
                 'status' => true,
                 'type' => 'success',
@@ -151,7 +152,7 @@ class RoleController extends Controller
                 'request' => $request->all(),
             ];
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return [
                 'status' => false,
                 'type' => 'error',

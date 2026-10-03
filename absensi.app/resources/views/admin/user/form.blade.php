@@ -15,10 +15,11 @@
 <div class="">
     <label class="form-label">Email</label>
     <div class="input-group input-group-merge">
-        <input type="text" class="form-control" name="email" placeholder="Type here.." aria-label="Type here.."
+        <span class="input-group-text"><i class="ti ti-mail"></i></span>
+        <input type="email" class="form-control" name="email" placeholder="contoh: nama@domain.com" aria-label="Email"
             aria-describedby="email" />
-        <span class="input-group-text">@example.com</span>
     </div>
+    <div class="form-text text-muted" style="font-size: 0.75rem;">Email fleksibel (Gmail, Yahoo, Dalwa, atau domain lainnya).</div>
 </div>
 @if (\Auth::user()->isAdmin())
     <div class="">

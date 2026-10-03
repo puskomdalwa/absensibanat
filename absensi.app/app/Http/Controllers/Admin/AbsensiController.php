@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Models\Device;
 use App\Models\Verify;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -22,7 +23,9 @@ class AbsensiController extends Controller
 
     public function index()
     {
-        $isStaff = auth()->user()->isStaff();
+        /** @var \App\Models\User|null $currentUser */
+        $currentUser = auth()->user();
+        $isStaff = $currentUser ? $currentUser->isStaff() : false;
         $user = User::all();
         $departemen = Departemen::all();
         $role = Role::all();
@@ -277,8 +280,8 @@ class AbsensiController extends Controller
                 'users.name',
                 'departemen.nama as departemen',
                 'absensi.tgl_absen',
-                \DB::raw('MONTH(absensi.tgl_absen) as bulan'),
-                \DB::raw('YEAR(absensi.tgl_absen) as tahun'),
+                DB::raw('MONTH(absensi.tgl_absen) as bulan'),
+                DB::raw('YEAR(absensi.tgl_absen) as tahun'),
                 'absensi.latitude',
                 'absensi.longitude',
                 'absensi.pagi as jam_datang',
@@ -378,6 +381,11 @@ class AbsensiController extends Controller
         }
     }
 
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder $query
+     * @param Request $request
+     * @return \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder
+     */
     private function applyAbsensiFilters($query, Request $request)
     {
         $roleId = $request->input('role_id', '*') ?: '*';

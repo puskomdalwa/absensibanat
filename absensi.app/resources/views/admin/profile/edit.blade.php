@@ -111,11 +111,10 @@
                 const name = $(this).data('name');
                 const email = $(this).data('email');
                 const username = $(this).data('username');
-                const sex = $(this).data('sex');
+                const jenis_kelamin = $(this).data('jenis_kelamin');
                 const photo = $(this).data('photo');
                 const affiliate = $(this).data('affiliate');
                 const telp = $(this).data('telp');
-
 
                 $('#form-edit-record [name="id"]').val(id);
                 $('#form-edit-record [name="name"]').val(name);
@@ -123,7 +122,7 @@
                 $('#form-edit-record [name="username"]').val(username);
                 $('#form-edit-record [name="affiliate"]').val(affiliate);
                 $('#form-edit-record [name="telp"]').val(telp);
-                $('#form-edit-record [name="sex"]').val(sex).change();
+                $('#form-edit-record [name="jenis_kelamin"]').val(jenis_kelamin).change();
                 if (photo) {
                     $('#form-edit-record .cropped-image').attr('src', "{{ asset('photo/') }}" + "/" +
                         photo);

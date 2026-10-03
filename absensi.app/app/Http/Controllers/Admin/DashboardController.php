@@ -5,13 +5,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Departemen;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\DataTables;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $user = \Auth::user();
+        $user = Auth::user();
 
         $departemen = Departemen::orderBy('nama')->get();
         return view('admin/dashboard/index', compact(

@@ -149,24 +149,31 @@ class UserController extends Controller
             $isStaff = $request->user()->isStaff();
 
             $request->validate([
-                'id'               => 'required|integer|unique:users,id',
+                'id'               => 'nullable|integer|unique:users,id',
                 'username'         => 'required|string|max:255|unique:users',
                 'name'             => 'required|string|max:255',
-                'email'            => 'nullable|email|max:255|unique:users',
+                'email'            => 'nullable|email|max:255|unique:users,email',
                 'jenis_kelamin'    => 'required|in:Laki-laki,Perempuan,*',
                 'role_id'          => $isStaff ? 'nullable' : 'required|exists:role,id',
                 'departemen_id'    => 'nullable|exists:departemen,id',
                 'type_id'          => 'nullable|exists:type,id',
-                'password'         => 'required|string|min:8|max:255',
+                'password'         => 'required|string|min:6|max:255',
                 'confirm_password' => 'required|same:password',
                 'upload_photo'     => 'nullable|mimes:jpeg,png,jpg,gif,webp,ico|max:' . BulkData::maxSizeUpload,
                 'photo'            => 'required_with:upload_photo',
             ], [
-                'username.unique'           => 'The username is already taken. Please choose another one.',
-                'email.unique'              => 'The email has already been registered. Please use a different email.',
-                'confirm_password.same'     => 'Password and Confirm Password must match.',
-                'confirm_password.required' => 'The confirm password field is required.',
-                'photo.required_with'       => 'Photo is required when upload photo is provided.',
+                'id.unique'                 => 'ID civitas tersebut sudah terdaftar. Silakan gunakan ID lain atau kosongkan untuk otomatis.',
+                'id.integer'                => 'ID civitas harus berupa angka.',
+                'username.required'         => 'Username wajib diisi.',
+                'username.unique'           => 'Username sudah digunakan. Silakan gunakan username lain.',
+                'name.required'             => 'Nama civitas wajib diisi.',
+                'email.email'               => 'Format email tidak valid. Gunakan format seperti nama@domain.com.',
+                'email.unique'              => 'Email tersebut sudah terdaftar. Silakan gunakan email lain.',
+                'password.required'         => 'Password wajib diisi.',
+                'password.min'              => 'Password minimal 6 karakter.',
+                'confirm_password.same'     => 'Konfirmasi password harus sama dengan password.',
+                'confirm_password.required' => 'Konfirmasi password wajib diisi.',
+                'photo.required_with'       => 'Foto wajib disertakan jika memilih file foto.',
             ]);
 
             $roleId = $isStaff
@@ -202,11 +209,28 @@ class UserController extends Controller
                 }
             }
 
-            $user->id            = $request->id;
+            if ($request->filled('id')) {
+                $user->id = $request->id;
+            } else {
+                $nextId = (User::max('id') ?? 0) + 1;
+                $user->id = $nextId;
+            }
 
-            $user->username      = $request->username;
-            $user->name          = $request->name;
-            $user->email         = $request->email;
+            $user->username      = trim($request->username);
+            $user->name          = trim($request->name);
+
+            // Flexible email: if provided, use it. If left blank, generate a valid fallback to satisfy NOT NULL
+            if ($request->filled('email')) {
+                $user->email = trim($request->email);
+            } else {
+                $cleanUser = preg_replace('/[^a-zA-Z0-9_\.]/', '', $user->username);
+                $fallbackEmail = strtolower($cleanUser) . '@dalwa.ac.id';
+                if (User::where('email', $fallbackEmail)->exists()) {
+                    $fallbackEmail = strtolower($cleanUser) . '_' . ($user->id ?? time()) . '@dalwa.ac.id';
+                }
+                $user->email = $fallbackEmail;
+            }
+
             $user->jenis_kelamin = $request->jenis_kelamin;
             $user->role_id       = $roleId;
             $user->departemen_id = $request->departemen_id ?: null;
@@ -217,25 +241,26 @@ class UserController extends Controller
             $user->save();
 
             DB::commit();
-            return [
+            return response()->json([
                 'status'  => true,
                 'type'    => 'success',
-                'message' => 'Success',
-            ];
+                'message' => 'User baru berhasil ditambahkan.',
+            ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             return response()->json([
                 'status'  => false,
                 'type'    => 'error',
-                'message' => implode('<br><br>', array_map('implode', $e->errors())),
+                'message' => implode('<br>', array_map('implode', $e->errors())),
             ]);
         } catch (\Throwable $th) {
             DB::rollback();
-            return [
+            \Log::error('Error storing user: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
+            return response()->json([
                 'status'  => false,
                 'type'    => 'error',
-                'message' => 'Gagal menyimpan user.',
-            ];
+                'message' => 'Gagal menyimpan user: ' . $th->getMessage(),
+            ]);
         }
     }
 
@@ -293,9 +318,11 @@ class UserController extends Controller
                 }
             }
 
-            $user->username      = $request->username;
-            $user->name          = $request->name;
-            $user->email         = $request->email;
+            $user->username      = trim($request->username);
+            $user->name          = trim($request->name);
+            if ($request->filled('email')) {
+                $user->email = trim($request->email);
+            }
             $user->role_id       = $isStaff
                 ? Role::where('akses', 'user')->value('id')
                 : ($request->role_id ?: $user->role_id);

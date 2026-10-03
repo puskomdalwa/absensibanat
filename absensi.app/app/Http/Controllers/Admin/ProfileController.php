@@ -7,6 +7,9 @@ use App\Models\User;
 use App\Models\Departemen;
 use App\Models\Type;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use App\Http\Services\BulkData;
 use App\Http\Controllers\Controller;
 
@@ -14,7 +17,7 @@ class ProfileController extends Controller
 {
     public function index()
     {
-        $user = \Auth::user();
+        $user = Auth::user();
         $role = Role::all();
         $departemen = Departemen::all();
         $type = Type::all();
@@ -24,7 +27,7 @@ class ProfileController extends Controller
     public function update(Request $request)
     {
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
             $user = $request->user();
 
             $request->validate([
@@ -70,22 +73,24 @@ class ProfileController extends Controller
                 
             }
 
-            $user->username = $request->username;
-            $user->name = $request->name;
-            $user->email = $request->email;
+            $user->username = trim($request->username);
+            $user->name = trim($request->name);
+            if ($request->filled('email')) {
+                $user->email = trim($request->email);
+            }
             $user->jenis_kelamin = $request->jenis_kelamin;
-            if ($request->password) {
-                $user->password = \Hash::make($request->password);
+            if ($request->filled('password')) {
+                $user->password = Hash::make($request->password);
             }
             $user->save();
 
-            \DB::commit();
+            DB::commit();
             return redirect()->back()->with('success', "Berhasil update profile");
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return redirect()->back()->with('error', implode('<br><br>', array_map('implode', $e->errors())));
         } catch (\Throwable $th) {
-            \DB::rollback();
+            DB::rollback();
             return redirect()->back()->with('error', $th->getMessage());
         }
     }

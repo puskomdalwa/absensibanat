@@ -1098,6 +1098,10 @@
     border: 1px solid var(--banat-border, rgba(224, 82, 117, 0.16));
     box-shadow: 0 4px 12px rgba(224, 82, 117, 0.04);
     transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden !important;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .banat-search-result-card:hover {
@@ -1105,6 +1109,53 @@
     border-color: #fb7185;
     transform: translateY(-2px);
     box-shadow: 0 10px 25px rgba(224, 82, 117, 0.12);
+}
+
+.banat-search-card-body {
+    flex: 1 1 0%;
+    min-width: 0 !important;
+    width: 0 !important;
+    overflow: hidden;
+}
+
+.banat-search-dept-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px !important;
+    font-size: 0.72rem !important;
+    font-weight: 600;
+    border-radius: 6px !important;
+    background: rgba(224, 82, 117, 0.08);
+    color: #e11d48;
+    border: 1px solid rgba(224, 82, 117, 0.2);
+    line-height: 1.25;
+    max-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.banat-search-civitas-name {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--banat-text-dark, #1e1926);
+    line-height: 1.35;
+    margin-bottom: 3px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.banat-search-id-badge {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--banat-text-muted, #8c8296);
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .banat-search-highlight {
@@ -1160,6 +1211,20 @@
 [data-theme="dark"] .banat-search-result-card:hover {
     background: rgba(255, 255, 255, 0.08);
     border-color: #fb7185;
+}
+
+[data-theme="dark"] .banat-search-civitas-name {
+    color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .banat-search-dept-badge {
+    background: rgba(251, 113, 133, 0.15) !important;
+    color: #fda4af !important;
+    border-color: rgba(251, 113, 133, 0.3) !important;
+}
+
+[data-theme="dark"] .banat-search-id-badge {
+    color: rgba(255, 255, 255, 0.5) !important;
 }
 </style>
 
@@ -1413,24 +1478,27 @@
                         <a href="${user.url}" class="banat-search-result-card d-flex align-items-center gap-3 p-3 rounded-4 text-decoration-none h-100">
                             <div class="position-relative flex-shrink-0">
                                 <img src="${user.photo}" 
-                                     alt="${user.name}" 
+                                     alt="${escapeHtml(user.name)}" 
                                      class="rounded-circle shadow-sm" 
-                                     style="width: 52px; height: 52px; object-fit: cover; border: 2px solid var(--banat-primary-light);" 
+                                     style="width: 48px; height: 48px; object-fit: cover; border: 2px solid var(--banat-primary-light);" 
                                      onerror="this.src='{{ asset('home/assets/imgs/theme/user.png') }}'" />
                             </div>
-                            <div class="flex-grow-1 min-width-0">
-                                <div class="d-flex align-items-center justify-content-between gap-1 mb-1">
-                                    <span class="badge-dept small text-nowrap" style="font-size: 0.72rem;">
-                                        ${user.departemen_nama}
+                            <div class="banat-search-card-body">
+                                <div class="d-flex align-items-center justify-content-between gap-1 mb-1" style="min-width: 0;">
+                                    <span class="banat-search-dept-badge text-nowrap">
+                                        ${escapeHtml(user.departemen_nama)}
                                     </span>
-                                    <span class="text-muted small fw-600" style="font-size: 0.75rem;">#${user.id}</span>
+                                    <span class="banat-search-id-badge">#${user.id}</span>
                                 </div>
-                                <h6 class="fw-700 mb-1 text-truncate" style="font-size: 0.95rem; color: var(--banat-text-dark);">
+                                <div class="banat-search-civitas-name" title="${escapeHtml(user.name)}">
                                     ${displayName}
-                                </h6>
-                                <div class="d-flex align-items-center text-muted small" style="font-size: 0.78rem;">
-                                    <span>Lihat Catatan Presensi</span>
-                                    <i class="fa-solid fa-chevron-right ms-auto text-danger" style="font-size: 0.7rem;"></i>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between text-muted small mt-1" style="font-size: 0.76rem; min-width: 0;">
+                                    <span class="text-truncate text-muted me-1" style="font-size: 0.75rem;">Catatan Presensi</span>
+                                    <span class="d-inline-flex align-items-center gap-1 text-danger fw-600 flex-shrink-0" style="font-size: 0.72rem;">
+                                        <span>Lihat</span>
+                                        <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i>
+                                    </span>
                                 </div>
                             </div>
                         </a>
