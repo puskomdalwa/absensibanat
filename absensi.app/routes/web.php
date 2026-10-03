@@ -207,6 +207,8 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,staff'])->group(function
         Route::delete('/users/delete', [FingerspotController::class, 'deviceUsersDelete'])->name('admin.fingerspot.users.delete');
         Route::post('/users/reg-online', [FingerspotController::class, 'deviceUsersRegOnline'])->name('admin.fingerspot.users.reg_online');
         Route::post('/users/copy', [FingerspotController::class, 'deviceUsersCopy'])->name('admin.fingerspot.users.copy');
+        Route::post('/users/batch-precheck', [FingerspotController::class, 'batchUsersPrecheck'])->name('admin.fingerspot.users.batch_precheck');
+        Route::post('/users/batch-process', [FingerspotController::class, 'batchUsersProcess'])->name('admin.fingerspot.users.batch_process');
 
         // Commands & Webhook Logs
         Route::get('/commands/data', [FingerspotController::class, 'commandsData'])->name('admin.fingerspot.commands.data');

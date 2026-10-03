@@ -955,6 +955,389 @@ $(document).ready(function() {
     });
 
     // ----------------------------------------------------
+    // TAB 3: BATCH TAMBAHKAN SEMUA USER KE MESIN (ANTI-TIMEOUT & CHUNKED)
+    // ----------------------------------------------------
+    var batchState = {
+        userIds: [],
+        targetCloudIds: [],
+        privilege: 1,
+        overwrite: false,
+        total: 0,
+        processed: 0,
+        success: 0,
+        skipped: 0,
+        failed: 0,
+        isPaused: false,
+        isProcessing: false,
+        currentIndex: 0,
+        chunkSize: 5
+    };
+
+    function resetBatchModal() {
+        batchState = {
+            userIds: [],
+            targetCloudIds: [],
+            privilege: 1,
+            overwrite: false,
+            total: 0,
+            processed: 0,
+            success: 0,
+            skipped: 0,
+            failed: 0,
+            isPaused: false,
+            isProcessing: false,
+            currentIndex: 0,
+            chunkSize: 5
+        };
+
+        // Reset step visibility
+        $('#batch-step-1').removeClass('d-none');
+        $('#batch-step-2').addClass('d-none');
+        $('#batch-step-3').addClass('d-none');
+
+        // Reset footer buttons
+        $('#btn-batch-cancel').removeClass('d-none');
+        $('#btn-back-to-step-1').addClass('d-none');
+        $('#btn-pause-batch').addClass('d-none').removeClass('btn-outline-success').addClass('btn-outline-danger').html('<i class="ti ti-player-pause me-1"></i> Hentikan Sementara');
+        $('#btn-precheck-batch').removeClass('d-none').prop('disabled', false).html('<i class="ti ti-search me-1"></i> Periksa & Analisis Pengguna');
+        $('#btn-start-batch-push').addClass('d-none');
+        $('#btn-finish-batch').addClass('d-none');
+
+        // Reset Step 1 inputs
+        updateTargetModeUI('all');
+        $('#batch-user-privilege').val('1');
+        $('#batch-overwrite-mode').val('skip');
+
+        // Reset Step 3 elements
+        $('#batch-live-spinner').show();
+        $('#batch-status-title').text('Sedang Menambahkan Pengguna ke Mesin...');
+        $('#batch-status-subtitle').text('Mohon jangan menutup jendela ini hingga seluruh batch selesai.');
+        $('#batch-progress-bar').css('width', '0%').attr('aria-valuenow', 0);
+        $('#batch-progress-text').text('Memproses: 0 / 0 Pengguna');
+        $('#batch-progress-percent').text('0%');
+        $('#batch-count-success').text('0');
+        $('#batch-count-skipped').text('0');
+        $('#batch-count-failed').text('0');
+        $('#batch-live-log').html('<div class="text-muted">[Sistem] Siap memulai pengiriman batch massal...</div>');
+        $('#btn-close-batch-modal').prop('disabled', false);
+    }
+
+    function updateTargetModeUI(mode) {
+        if (mode === 'all') {
+            $('#target-mode-all').prop('checked', true);
+            $('#card-target-mode-all').attr('style', 'border-color: #7367f0 !important; background-color: rgba(115, 103, 240, 0.04); cursor: pointer;');
+            $('#card-target-mode-single').attr('style', 'border-color: #dbdade !important; background-color: #ffffff; cursor: pointer;');
+            $('#box-single-device-select').slideUp(200);
+        } else {
+            $('#target-mode-single').prop('checked', true);
+            $('#card-target-mode-single').attr('style', 'border-color: #7367f0 !important; background-color: rgba(115, 103, 240, 0.04); cursor: pointer;');
+            $('#card-target-mode-all').attr('style', 'border-color: #dbdade !important; background-color: #ffffff; cursor: pointer;');
+            $('#box-single-device-select').slideDown(200);
+        }
+    }
+
+    // Buka Modal Batch
+    $('#btn-batch-push-users').on('click', function() {
+        resetBatchModal();
+        $('#modal-batch-push-users').modal('show');
+    });
+
+    // Toggle pilihan target mode
+    $('input[name="batch_target_mode"]').on('change', function() {
+        updateTargetModeUI($(this).val());
+    });
+
+    // Click on custom option card to toggle radio
+    $('#card-target-mode-all').on('click', function(e) {
+        if (!$(e.target).is('input')) {
+            updateTargetModeUI('all');
+        }
+    });
+    $('#card-target-mode-single').on('click', function(e) {
+        if (!$(e.target).is('input') && !$(e.target).is('select')) {
+            updateTargetModeUI('single');
+        }
+    });
+
+    // STEP 1 -> STEP 2: Jalankan Precheck
+    $('#btn-precheck-batch').on('click', function() {
+        var btn = $(this);
+        var targetMode = $('input[name="batch_target_mode"]:checked').val();
+        var singleCloudId = $('#batch-single-cloud-id').val();
+
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menganalisis Pengguna...');
+
+        $.ajax({
+            url: "{{ route('admin.fingerspot.users.batch_precheck') }}",
+            type: "POST",
+            data: {
+                target_mode: targetMode,
+                cloud_id: singleCloudId,
+                _token: csrfToken
+            },
+            success: function(res) {
+                btn.prop('disabled', false).html('<i class="ti ti-search me-1"></i> Periksa & Analisis Pengguna');
+
+                if (!res.status) {
+                    Swal.fire({ icon: 'warning', title: 'Perhatian', text: res.message || 'Gagal melakukan analisis.' });
+                    return;
+                }
+
+                // Simpan state
+                batchState.userIds = res.user_ids || [];
+                batchState.targetCloudIds = res.target_cloud_ids || [];
+                batchState.privilege = parseInt($('#batch-user-privilege').val()) || 1;
+                batchState.overwrite = $('#batch-overwrite-mode').val() === 'overwrite';
+                batchState.total = batchState.userIds.length;
+
+                // Tampilkan data KPI summary
+                $('#precheck-total-users').text(res.total_users);
+                $('#precheck-total-devices').text(res.total_target_devices + ' Mesin');
+                $('#precheck-pending-users').text(res.pending_users_count);
+                $('#precheck-existing-users').text(res.existing_users_count);
+                $('#precheck-action-count').text(res.total_users);
+                $('#precheck-mode-badge').text(targetMode === 'all' ? 'Target: Seluruh Mesin (' + res.total_target_devices + ')' : 'Target: 1 Mesin Terpilih');
+
+                // Render preview table
+                var tbody = $('#precheck-preview-tbody');
+                tbody.empty();
+
+                if (res.preview && res.preview.length > 0) {
+                    $.each(res.preview, function(idx, user) {
+                        var statusBadgeHtml = '';
+                        if (user.status_badge === 'success') {
+                            statusBadgeHtml = `<span class="badge rounded-pill bg-label-success px-3 py-1 fw-bold"><i class="ti ti-check me-1"></i>${user.status_label}</span>`;
+                        } else if (user.status_badge === 'info') {
+                            statusBadgeHtml = `<span class="badge rounded-pill bg-label-info px-3 py-1 fw-bold"><i class="ti ti-arrows-diff me-1"></i>${user.status_label}</span>`;
+                        } else {
+                            statusBadgeHtml = `<span class="badge rounded-pill px-3 py-1 fw-bold" style="color: #b35b00 !important; background-color: #fff4e5 !important; border: 1px solid rgba(255, 171, 0, 0.4);"><i class="ti ti-clock me-1"></i>${user.status_label}</span>`;
+                        }
+
+                        var initial = (user.name && user.name.length > 0) ? user.name.charAt(0).toUpperCase() : 'U';
+
+                        var row = `<tr>
+                            <td class="align-middle py-2 px-3"><span class="badge bg-label-primary font-monospace px-2 py-1 fw-bold">#${user.id}</span></td>
+                            <td class="align-middle py-2 px-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-xs rounded-circle bg-label-primary me-2 d-flex align-items-center justify-content-center fw-bold" style="width: 28px; height: 28px; font-size: 11px;">
+                                        ${initial}
+                                    </div>
+                                    <span class="fw-bold text-dark">${user.name}</span>
+                                </div>
+                            </td>
+                            <td class="align-middle py-2 px-3"><code class="bg-light px-2 py-1 rounded text-secondary font-monospace">${user.username}</code></td>
+                            <td class="align-middle py-2 px-3">${statusBadgeHtml}</td>
+                        </tr>`;
+                        tbody.append(row);
+                    });
+                    if (res.total_users > res.preview.length) {
+                        tbody.append(`<tr><td colspan="4" class="text-center text-muted small py-3 bg-light"><em>... dan ${res.total_users - res.preview.length} civitas lainnya siap disinkronisasikan.</em></td></tr>`);
+                    }
+                } else {
+                    tbody.append('<tr><td colspan="4" class="text-center text-muted py-4">Tidak ada data civitas ditemukan.</td></tr>');
+                }
+
+                // Ganti view ke Step 2
+                $('#batch-step-1').addClass('d-none');
+                $('#batch-step-2').removeClass('d-none');
+
+                $('#btn-batch-cancel').addClass('d-none');
+                $('#btn-back-to-step-1').removeClass('d-none');
+                $('#btn-precheck-batch').addClass('d-none');
+                $('#btn-start-batch-push').removeClass('d-none');
+            },
+            error: function(err) {
+                btn.prop('disabled', false).html('<i class="ti ti-search me-1"></i> Periksa & Analisis Pengguna');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Memeriksa Data',
+                    text: err.responseJSON ? err.responseJSON.message : 'Terjadi kesalahan saat memeriksa pengguna.'
+                });
+            }
+        });
+    });
+
+    // STEP 2 -> STEP 1: Kembali
+    $('#btn-back-to-step-1').on('click', function() {
+        $('#batch-step-2').addClass('d-none');
+        $('#batch-step-1').removeClass('d-none');
+
+        $('#btn-back-to-step-1').addClass('d-none');
+        $('#btn-batch-cancel').removeClass('d-none');
+        $('#btn-start-batch-push').addClass('d-none');
+        $('#btn-precheck-batch').removeClass('d-none');
+    });
+
+    // STEP 2 -> STEP 3: ACC & Mulai Proses Batch
+    $('#btn-start-batch-push').on('click', function() {
+        if (!batchState.userIds || batchState.userIds.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'Tidak Ada Data', text: 'Tidak ada civitas yang dapat ditambahkan.' });
+            return;
+        }
+
+        // Tampilkan Step 3
+        $('#batch-step-2').addClass('d-none');
+        $('#batch-step-3').removeClass('d-none');
+
+        $('#btn-back-to-step-1').addClass('d-none');
+        $('#btn-start-batch-push').addClass('d-none');
+        $('#btn-pause-batch').removeClass('d-none');
+        $('#btn-close-batch-modal').prop('disabled', true); // Kunci modal agar tidak sengaja tertutup
+
+        // Inisialisasi progress
+        batchState.isProcessing = true;
+        batchState.isPaused = false;
+        batchState.currentIndex = 0;
+        batchState.processed = 0;
+        batchState.success = 0;
+        batchState.skipped = 0;
+        batchState.failed = 0;
+
+        $('#batch-live-log').html('<div class="text-info"><i class="ti ti-clock me-1"></i> [' + new Date().toLocaleTimeString() + '] Memulai sinkronisasi massal ' + batchState.total + ' pengguna ke ' + batchState.targetCloudIds.length + ' mesin...</div>');
+
+        // Jalankan eksekutor chunk
+        executeNextBatchChunk();
+    });
+
+    function appendBatchLog(type, message) {
+        var logBox = $('#batch-live-log');
+        var color = type === 'success' ? '#28c76f' : (type === 'skipped' ? '#00cfe8' : (type === 'failed' ? '#ea5455' : '#ff9f43'));
+        var icon = type === 'success' ? 'ti ti-check' : (type === 'skipped' ? 'ti ti-arrow-forward' : (type === 'failed' ? 'ti ti-x' : 'ti ti-info-circle'));
+        var time = new Date().toLocaleTimeString();
+
+        var entry = $(`<div style="color: ${color}; margin-bottom: 2px;">
+            <span class="text-muted">[${time}]</span> <i class="${icon} me-1"></i> ${message}
+        </div>`);
+
+        logBox.append(entry);
+        if (logBox[0]) {
+            logBox.scrollTop(logBox[0].scrollHeight);
+        }
+    }
+
+    function updateBatchProgressUI() {
+        var pct = batchState.total > 0 ? Math.min(100, Math.round((batchState.processed / batchState.total) * 100)) : 100;
+        $('#batch-progress-bar').css('width', pct + '%').attr('aria-valuenow', pct);
+        $('#batch-progress-percent').text(pct + '%');
+        $('#batch-progress-text').text(`Memproses: ${batchState.processed} / ${batchState.total} Pengguna`);
+        $('#batch-count-success').text(batchState.success);
+        $('#batch-count-skipped').text(batchState.skipped);
+        $('#batch-count-failed').text(batchState.failed);
+    }
+
+    function executeNextBatchChunk() {
+        if (batchState.isPaused) {
+            appendBatchLog('info', 'Proses dijeda oleh pengguna.');
+            return;
+        }
+
+        if (batchState.currentIndex >= batchState.userIds.length) {
+            // Selesai seluruh batch!
+            finishBatchPush();
+            return;
+        }
+
+        var chunk = batchState.userIds.slice(batchState.currentIndex, batchState.currentIndex + batchState.chunkSize);
+
+        $.ajax({
+            url: "{{ route('admin.fingerspot.users.batch_process') }}",
+            type: "POST",
+            data: {
+                target_cloud_ids: batchState.targetCloudIds,
+                user_ids: chunk,
+                overwrite: batchState.overwrite ? 1 : 0,
+                privilege: batchState.privilege,
+                _token: csrfToken
+            },
+            timeout: 60000,
+            success: function(res) {
+                if (res.logs && res.logs.length > 0) {
+                    $.each(res.logs, function(i, item) {
+                        appendBatchLog(item.status, `${item.name} (PIN ${item.pin}) &rarr; ${item.message}`);
+                    });
+                }
+
+                batchState.success += (res.success_count || 0);
+                batchState.skipped += (res.skipped_count || 0);
+                batchState.failed += (res.failed_count || 0);
+                batchState.processed += chunk.length;
+                batchState.currentIndex += chunk.length;
+
+                updateBatchProgressUI();
+
+                // Lanjut ke chunk berikutnya dengan jeda 250ms agar browser & server tetap responsif
+                if (!batchState.isPaused) {
+                    setTimeout(executeNextBatchChunk, 250);
+                }
+            },
+            error: function(xhr, status, error) {
+                // Jangan sampai macet / gagal total; catat chunk ini dan lanjutkan!
+                appendBatchLog('failed', `Batch PIN [${chunk.join(', ')}] mengalami kendala: ${error || 'Network error'}. Melanjutkan chunk berikutnya...`);
+                batchState.failed += (chunk.length * batchState.targetCloudIds.length);
+                batchState.processed += chunk.length;
+                batchState.currentIndex += chunk.length;
+
+                updateBatchProgressUI();
+
+                if (!batchState.isPaused) {
+                    setTimeout(executeNextBatchChunk, 500);
+                }
+            }
+        });
+    }
+
+    // Pause / Resume Process
+    $('#btn-pause-batch').on('click', function() {
+        if (!batchState.isPaused) {
+            batchState.isPaused = true;
+            $(this).removeClass('btn-outline-danger').addClass('btn-outline-success')
+                   .html('<i class="ti ti-player-play me-1"></i> Lanjutkan Proses');
+            $('#batch-status-title').text('Proses Dijeda');
+            $('#batch-live-spinner').hide();
+        } else {
+            batchState.isPaused = false;
+            $(this).removeClass('btn-outline-success').addClass('btn-outline-danger')
+                   .html('<i class="ti ti-player-pause me-1"></i> Hentikan Sementara');
+            $('#batch-status-title').text('Sedang Menambahkan Pengguna ke Mesin...');
+            $('#batch-live-spinner').show();
+            executeNextBatchChunk();
+        }
+    });
+
+    function finishBatchPush() {
+        batchState.isProcessing = false;
+        $('#batch-live-spinner').hide();
+        $('#batch-status-title').html('<i class="ti ti-circle-check text-success me-1"></i> Sinkronisasi Massal Selesai!');
+        $('#batch-status-subtitle').text('Seluruh daftar pengguna telah selesai diproses ke mesin target.');
+        $('#btn-pause-batch').addClass('d-none');
+        $('#btn-finish-batch').removeClass('d-none');
+        $('#btn-close-batch-modal').prop('disabled', false);
+
+        appendBatchLog('success', `[SELESAI] Total Berhasil: ${batchState.success}, Dilewati: ${batchState.skipped}, Gagal: ${batchState.failed}.`);
+
+        // Refresh tabel di background
+        tableDeviceUsers.ajax.reload(null, false);
+        tableCommands.ajax.reload(null, false);
+    }
+
+    // Selesai & Tutup Modal
+    $('#btn-finish-batch').on('click', function() {
+        $('#modal-batch-push-users').modal('hide');
+        Swal.fire({
+            icon: 'success',
+            title: 'Sinkronisasi Selesai!',
+            html: `<p>Proses penambahan civitas ke mesin biometrik telah tuntas dikirimkan.</p>
+                   <div class="row text-center g-2 mt-2">
+                       <div class="col-4"><span class="badge bg-success w-100 py-2">Berhasil: ${batchState.success}</span></div>
+                       <div class="col-4"><span class="badge bg-info w-100 py-2">Dilewati: ${batchState.skipped}</span></div>
+                       <div class="col-4"><span class="badge bg-danger w-100 py-2">Gagal: ${batchState.failed}</span></div>
+                   </div>`,
+            customClass: { confirmButton: 'btn btn-primary' },
+            buttonsStyling: false
+        });
+    });
+
+    // ----------------------------------------------------
     // TAB 4: LOG PERINTAH & WEBHOOK
     // ----------------------------------------------------
     var tableCommands = $('#table-commands-log').DataTable({

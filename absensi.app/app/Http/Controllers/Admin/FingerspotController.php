@@ -521,6 +521,273 @@ class FingerspotController extends Controller
 
     /*
     |--------------------------------------------------------------------------
+    | BATCH USER PUSH (MASS REGISTER TO DEVICES)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Pre-check local users against target device(s) before batch push.
+     */
+    public function batchUsersPrecheck(Request $request)
+    {
+        $request->validate([
+            'target_mode' => 'required|in:all,single',
+            'cloud_id'    => 'nullable|string',
+        ]);
+
+        if ($request->target_mode === 'single') {
+            $devices = Device::where('cloud_id', $request->cloud_id)->get();
+        } else {
+            $devices = Device::all();
+        }
+
+        if ($devices->isEmpty()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Tidak ada mesin target yang ditemukan. Pastikan perangkat telah didaftarkan.',
+            ], 422);
+        }
+
+        $targetCloudIds = $devices->pluck('cloud_id')->toArray();
+        $targetDevices = $devices->map(function ($dev) {
+            return [
+                'id'       => $dev->id,
+                'name'     => $dev->name,
+                'cloud_id' => $dev->cloud_id,
+            ];
+        })->values();
+
+        // Get all local users
+        $users = User::select('id', 'name', 'username', 'role_id')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $totalUsers = $users->count();
+
+        // Fetch all existing user pins registered across these target devices
+        $existingDeviceUsers = FingerspotDeviceUser::whereIn('cloud_id', $targetCloudIds)
+            ->get()
+            ->groupBy('cloud_id');
+
+        $devicePinsMap = [];
+        foreach ($targetCloudIds as $cid) {
+            $pins = $existingDeviceUsers->has($cid)
+                ? $existingDeviceUsers[$cid]->pluck('pin')->map(fn($p) => (string)$p)->toArray()
+                : [];
+            $devicePinsMap[$cid] = array_flip($pins);
+        }
+
+        $preview = [];
+        $userIds = [];
+        $existingCount = 0;
+        $pendingCount = 0;
+
+        foreach ($users as $u) {
+            $pin = (string)$u->id;
+            $userIds[] = $u->id;
+
+            // Check how many target devices already have this PIN
+            $existingDevices = [];
+            $missingDevices = [];
+
+            foreach ($targetDevices as $dev) {
+                $cid = $dev['cloud_id'];
+                if (isset($devicePinsMap[$cid][$pin])) {
+                    $existingDevices[] = $dev['name'];
+                } else {
+                    $missingDevices[] = $dev['name'];
+                }
+            }
+
+            $isFullyRegistered = count($missingDevices) === 0;
+            if ($isFullyRegistered) {
+                $existingCount++;
+            } else {
+                $pendingCount++;
+            }
+
+            // Preview first 100 users for display
+            if (count($preview) < 100) {
+                $preview[] = [
+                    'id'                  => $u->id,
+                    'name'                => $u->name,
+                    'username'            => $u->username,
+                    'is_fully_registered' => $isFullyRegistered,
+                    'missing_count'       => count($missingDevices),
+                    'existing_count'      => count($existingDevices),
+                    'status_label'        => $isFullyRegistered ? 'Sudah Terdaftar' : (count($missingDevices) === count($targetDevices) ? 'Belum Terdaftar' : 'Parsial (' . count($existingDevices) . '/' . count($targetDevices) . ')'),
+                    'status_badge'        => $isFullyRegistered ? 'success' : (count($missingDevices) === count($targetDevices) ? 'warning' : 'info'),
+                ];
+            }
+        }
+
+        return response()->json([
+            'status'               => true,
+            'total_users'          => $totalUsers,
+            'total_target_devices' => $devices->count(),
+            'target_devices'       => $targetDevices,
+            'target_cloud_ids'     => $targetCloudIds,
+            'existing_users_count' => $existingCount,
+            'pending_users_count'  => $pendingCount,
+            'user_ids'             => $userIds,
+            'preview'              => $preview,
+        ]);
+    }
+
+    /**
+     * Process a discrete batch of users to prevent PHP timeout.
+     */
+    public function batchUsersProcess(Request $request)
+    {
+        $request->validate([
+            'target_cloud_ids'   => 'required|array',
+            'target_cloud_ids.*' => 'required|string',
+            'user_ids'           => 'required|array',
+            'user_ids.*'         => 'required|integer',
+            'overwrite'          => 'nullable|boolean',
+            'privilege'          => 'nullable|integer|in:1,2,3',
+        ]);
+
+        @set_time_limit(120);
+
+        $cloudIds = $request->target_cloud_ids;
+        $userIds = $request->user_ids;
+        $overwrite = (bool)$request->input('overwrite', false);
+        $privilege = (int)$request->input('privilege', 1);
+
+        $users = User::whereIn('id', $userIds)->get()->keyBy('id');
+
+        // Existing device users cache for fast duplicate check
+        $existingDeviceUsers = FingerspotDeviceUser::whereIn('cloud_id', $cloudIds)
+            ->whereIn('pin', array_map('strval', $userIds))
+            ->get()
+            ->groupBy('cloud_id');
+
+        $devicePinsMap = [];
+        foreach ($cloudIds as $cid) {
+            $pins = $existingDeviceUsers->has($cid)
+                ? $existingDeviceUsers[$cid]->pluck('pin')->map(fn($p) => (string)$p)->toArray()
+                : [];
+            $devicePinsMap[$cid] = array_flip($pins);
+        }
+
+        $deviceNames = Device::whereIn('cloud_id', $cloudIds)->pluck('name', 'cloud_id')->toArray();
+
+        $successCount = 0;
+        $skippedCount = 0;
+        $failedCount = 0;
+        $logs = [];
+
+        foreach ($userIds as $userId) {
+            $user = $users->get($userId);
+            if (!$user) {
+                $failedCount++;
+                $logs[] = [
+                    'status'   => 'failed',
+                    'pin'      => $userId,
+                    'name'     => "User #{$userId}",
+                    'cloud_id' => 'all',
+                    'message'  => "User ID #{$userId} tidak ditemukan di database lokal.",
+                ];
+                continue;
+            }
+
+            $pin = (string)$user->id;
+            $cleanName = trim($user->name);
+
+            foreach ($cloudIds as $cloudId) {
+                $devName = $deviceNames[$cloudId] ?? $cloudId;
+                $alreadyExists = isset($devicePinsMap[$cloudId][$pin]);
+
+                if ($alreadyExists && !$overwrite) {
+                    $skippedCount++;
+                    $logs[] = [
+                        'status'   => 'skipped',
+                        'pin'      => $pin,
+                        'name'     => $cleanName,
+                        'cloud_id' => $cloudId,
+                        'device'   => $devName,
+                        'message'  => "Dilewati: Sudah terdaftar di {$devName}.",
+                    ];
+                    continue;
+                }
+
+                try {
+                    $res = Fingerspot::setUserInfo(
+                        null,
+                        $cloudId,
+                        $pin,
+                        $cleanName,
+                        $privilege,
+                        '',
+                        '',
+                        ''
+                    );
+
+                    $isSuccess = isset($res['success']) ? $res['success'] : true;
+
+                    if ($isSuccess) {
+                        // Update or create local cache
+                        FingerspotDeviceUser::updateOrCreate(
+                            [
+                                'cloud_id' => $cloudId,
+                                'pin'      => $pin,
+                            ],
+                            [
+                                'name'         => $cleanName,
+                                'privilege'    => $privilege,
+                                'last_sync_at' => now(),
+                            ]
+                        );
+
+                        // Mark as existing in current loop map
+                        $devicePinsMap[$cloudId][$pin] = true;
+                        $successCount++;
+                        $logs[] = [
+                            'status'   => 'success',
+                            'pin'      => $pin,
+                            'name'     => $cleanName,
+                            'cloud_id' => $cloudId,
+                            'device'   => $devName,
+                            'message'  => "Berhasil dikirim ke {$devName} (Trans ID: " . ($res['trans_id'] ?? 'OK') . ").",
+                        ];
+                    } else {
+                        $failedCount++;
+                        $logs[] = [
+                            'status'   => 'failed',
+                            'pin'      => $pin,
+                            'name'     => $cleanName,
+                            'cloud_id' => $cloudId,
+                            'device'   => $devName,
+                            'message'  => "Gagal di {$devName}: " . ($res['message'] ?? 'API error'),
+                        ];
+                    }
+                } catch (\Throwable $th) {
+                    $failedCount++;
+                    $logs[] = [
+                        'status'   => 'failed',
+                        'pin'      => $pin,
+                        'name'     => $cleanName,
+                        'cloud_id' => $cloudId,
+                        'device'   => $devName,
+                        'message'  => "Error di {$devName}: " . $th->getMessage(),
+                    ];
+                }
+            }
+        }
+
+        return response()->json([
+            'status'        => true,
+            'processed'     => count($userIds),
+            'success_count' => $successCount,
+            'skipped_count' => $skippedCount,
+            'failed_count'  => $failedCount,
+            'logs'          => $logs,
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | COMMANDS & WEBHOOK LOGS
     |--------------------------------------------------------------------------
     */
