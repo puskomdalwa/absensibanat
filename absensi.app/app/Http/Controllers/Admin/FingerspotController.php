@@ -28,8 +28,15 @@ class FingerspotController extends Controller
         $totalDeviceUsers = FingerspotDeviceUser::count();
         $todayCommands = FingerspotCommand::whereDate('created_at', date('Y-m-d'))->count();
 
-        // Local users list for push to device
-        $users = User::select('id', 'name', 'username')->orderBy('name')->limit(500)->get();
+        // Local users list for push to device (exclude superadmin)
+        $users = User::whereDoesntHave('role', function ($q) {
+                $q->where(DB::raw('LOWER(TRIM(akses))'), 'superadmin');
+            })
+            ->select('id', 'name', 'username')
+            ->orderBy('name')
+            ->limit(500)
+            ->get();
+
 
         $webhookUrl = url('/api/webhook/fingerspot');
         $apiUrl = env('FINGERSPOT_URL', 'https://developer.fingerspot.io/api');
@@ -414,6 +421,19 @@ class FingerspotController extends Controller
             'template'  => 'nullable|string',
         ]);
 
+        $targetUser = User::where('id', $request->pin)
+            ->orWhere('kode', $request->pin)
+            ->orWhere('username', $request->pin)
+            ->first();
+
+        if ($targetUser && $targetUser->isSuperAdmin()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'User dengan role Superadmin tidak dapat didaftarkan ke mesin biometrik.',
+            ], 422);
+        }
+
+
         $res = Fingerspot::setUserInfo(
             null,
             $request->cloud_id,
@@ -657,10 +677,14 @@ class FingerspotController extends Controller
             ];
         })->values();
 
-        // Get all local users
-        $users = User::select('id', 'name', 'username', 'role_id')
+        // Get all local users (exclude superadmin)
+        $users = User::whereDoesntHave('role', function ($q) {
+                $q->where(DB::raw('LOWER(TRIM(akses))'), 'superadmin');
+            })
+            ->select('id', 'name', 'username', 'role_id')
             ->orderBy('id', 'asc')
             ->get();
+
 
         $totalUsers = $users->count();
 
@@ -755,7 +779,12 @@ class FingerspotController extends Controller
         $overwrite = (bool)$request->input('overwrite', false);
         $privilege = (int)$request->input('privilege', 1);
 
-        $users = User::whereIn('id', $userIds)->get()->keyBy('id');
+        $users = User::whereDoesntHave('role', function ($q) {
+                $q->where(DB::raw('LOWER(TRIM(akses))'), 'superadmin');
+            })
+            ->whereIn('id', $userIds)
+            ->get()
+            ->keyBy('id');
 
         // Existing device users cache for fast duplicate check
         $existingDeviceUsers = FingerspotDeviceUser::whereIn('cloud_id', $cloudIds)
@@ -781,13 +810,13 @@ class FingerspotController extends Controller
         foreach ($userIds as $userId) {
             $user = $users->get($userId);
             if (!$user) {
-                $failedCount++;
+                $skippedCount++;
                 $logs[] = [
-                    'status'   => 'failed',
+                    'status'   => 'skipped',
                     'pin'      => $userId,
                     'name'     => "User #{$userId}",
                     'cloud_id' => 'all',
-                    'message'  => "User ID #{$userId} tidak ditemukan di database lokal.",
+                    'message'  => "Dilewati: User tidak ditemukan atau memiliki role Superadmin.",
                 ];
                 continue;
             }

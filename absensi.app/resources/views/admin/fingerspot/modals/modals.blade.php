@@ -327,9 +327,10 @@
                     </div>
                     <div class="small text-dark flex-grow-1">
                         <div class="fw-bold mb-1 text-primary">Informasi Pendaftaran Massal</div>
-                        Fitur ini akan mendaftarkan seluruh akun civitas lokal ke mesin biometrik terpilih. Sebelum eksekusi, sistem akan melakukan <strong>analisis pra-pemeriksaan</strong> untuk mendeteksi user yang sudah ada.
+                        Fitur ini akan mendaftarkan seluruh akun civitas lokal ke mesin biometrik terpilih (akun dengan role <strong>Superadmin otomatis dikecualikan</strong>). Sebelum eksekusi, sistem akan melakukan <strong>analisis pra-pemeriksaan</strong> untuk mendeteksi user yang sudah ada.
                     </div>
                 </div>
+
 
                 <div class="row g-3">
                     <!-- Pilihan Target Mesin -->
