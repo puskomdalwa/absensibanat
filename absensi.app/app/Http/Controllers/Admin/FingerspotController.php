@@ -598,8 +598,18 @@ class FingerspotController extends Controller
         if (!$sourceUser) {
             return response()->json([
                 'success' => false,
-                'message' => 'Data user sumber belum memiliki cache template. Silakan refresh info user dari mesin sumber terlebih dahulu.'
+                'message' => 'Data user sumber belum terdaftar di sistem lokal. Silakan refresh info user dari mesin sumber terlebih dahulu.'
             ], 404);
+        }
+
+        $hasBiometrics = ($sourceUser->finger > 0 || $sourceUser->face > 0 || $sourceUser->vein > 0);
+        $hasTemplate = !empty($sourceUser->template);
+
+        if ($hasBiometrics && !$hasTemplate) {
+            return response()->json([
+                'success' => false,
+                'message' => "User PIN {$sourceUser->pin} memiliki biometrik di mesin sumber, namun template-nya belum ditarik ke server. Pastikan Mesin Sumber menyala & online, lalu klik tombol 'Refresh Detail' (ikon biru) terlebih dahulu agar sidik jari tersimpan sebelum disalin."
+            ], 422);
         }
 
         $res = Fingerspot::setUserInfo(
@@ -632,9 +642,11 @@ class FingerspotController extends Controller
             ]
         );
 
+        $bioMsg = $hasTemplate ? 'beserta data biometrik (sidik jari)' : '(profil & PIN)';
+
         return response()->json([
             'success' => true,
-            'message' => "Perintah duplikasi user PIN {$sourceUser->pin} ke mesin target telah dikirimkan.",
+            'message' => "Perintah duplikasi user PIN {$sourceUser->pin} {$bioMsg} ke mesin target telah dikirimkan.",
             'response' => $res,
         ]);
     }
