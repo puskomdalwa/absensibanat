@@ -84,34 +84,60 @@
     <script>
         $(document).on('submit', '.form-delete-record', function(e) {
             e.preventDefault();
-            var id = $(e.target).find('input[name="id"]').val();
-            var name = $(e.target).find('input[name="name"]').val();
+            var form = $(e.target);
+            var id = form.find('input[name="id"]').val();
+            var name = form.find('input[name="name"]').val() || 'Pengguna Ini';
 
             Swal.fire({
-                title: `Are you sure delete ${name}?`,
-                text: "You won't be able to revert this!",
+                title: `Hapus Pengguna: ${name}?`,
+                html: `
+                    <p class="text-muted small mb-3">Tindakan ini akan menghapus akun pengguna dari sistem.</p>
+                    <div class="card p-3 text-start mb-2" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="swal-delete-absensi-single" style="cursor: pointer;">
+                            <label class="form-check-label fw-bold text-danger ms-2" for="swal-delete-absensi-single" style="cursor: pointer;">
+                                <i class="ti ti-trash me-1"></i>Ikut hapus riwayat absensi
+                            </label>
+                        </div>
+                        <div class="text-muted small mt-1 ms-4" style="font-size: 0.78rem;">
+                            Biarkan <strong>tidak dicentang</strong> agar seluruh data presensi & laporan tetap tersimpan aman.
+                        </div>
+                    </div>
+                `,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: 'Yes, delete it!',
+                confirmButtonText: 'Ya, Hapus Pengguna!',
+                cancelButtonText: 'Batal',
                 customClass: {
-                    confirmButton: 'btn btn-primary me-3 waves-effect waves-light',
+                    confirmButton: 'btn btn-danger me-3 waves-effect waves-light',
                     cancelButton: 'btn btn-label-secondary waves-effect waves-light'
                 },
-                buttonsStyling: false
+                buttonsStyling: false,
+                preConfirm: () => {
+                    return {
+                        delete_absensi: $('#swal-delete-absensi-single').is(':checked') ? 1 : 0
+                    };
+                }
             }).then(function(result) {
                 if (result.value) {
+                    var deleteAbsensi = result.value.delete_absensi;
+                    var formData = new FormData(form[0]);
+                    formData.append('delete_absensi', deleteAbsensi);
+
                     $.ajax({
                         type: "POST",
                         url: "{{ route('admin.user.delete') }}",
-                        data: new FormData($(e.target)[0]),
-                        // use [0] because inner swal so there are has 2 target, cant use currentTarget
+                        data: formData,
                         contentType: false,
                         processData: false,
                         success: function(response) {
-                            showToastr(response.type, response.type, response
-                                .message);
+                            showToastr(response.type, response.type, response.message);
                             dataTable.ajax.reload(null, false);
                         },
+                        error: function(err) {
+                            var msg = (err.responseJSON && err.responseJSON.message) ? err.responseJSON.message : 'Gagal menghapus pengguna.';
+                            showToastr('error', 'error', msg);
+                        }
                     });
                 }
             });
@@ -208,7 +234,20 @@
 
             Swal.fire({
                 title: `Hapus ${selectedIds.length} Pengguna Terpilih?`,
-                html: `<p>Akun yang akan dihapus: <strong>${previewText}</strong>.</p><p class="text-danger small mb-0"><i class="ti ti-alert-triangle me-1"></i>Tindakan ini akan menghapus data profil, foto, serta relasi mesin biometrik yang terkait dan tidak dapat dibatalkan!</p>`,
+                html: `
+                    <p class="mb-2">Akun yang akan dihapus: <strong>${previewText}</strong>.</p>
+                    <div class="card p-3 text-start mb-2" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="swal-bulk-delete-absensi" style="cursor: pointer;">
+                            <label class="form-check-label fw-bold text-danger ms-2" for="swal-bulk-delete-absensi" style="cursor: pointer;">
+                                <i class="ti ti-trash me-1"></i>Ikut hapus seluruh data riwayat absensi
+                            </label>
+                        </div>
+                        <div class="text-muted small mt-1 ms-4" style="font-size: 0.78rem;">
+                            Biarkan <strong>tidak dicentang</strong> agar seluruh data presensi & laporan pengguna tetap tersimpan aman di sistem.
+                        </div>
+                    </div>
+                `,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: `Ya, Hapus (${selectedIds.length})!`,
@@ -217,9 +256,15 @@
                     confirmButton: 'btn btn-danger me-3 waves-effect waves-light',
                     cancelButton: 'btn btn-label-secondary waves-effect waves-light'
                 },
-                buttonsStyling: false
+                buttonsStyling: false,
+                preConfirm: () => {
+                    return {
+                        delete_absensi: $('#swal-bulk-delete-absensi').is(':checked') ? 1 : 0
+                    };
+                }
             }).then(function(result) {
                 if (result.value) {
+                    var deleteAbsensi = result.value.delete_absensi;
                     var totalUsers = selectedIds.length;
                     var processedCount = 0;
                     var successCount = 0;
@@ -282,6 +327,7 @@
                                     type: "POST",
                                     data: {
                                         ids: chunk,
+                                        delete_absensi: deleteAbsensi,
                                         _token: "{{ csrf_token() }}"
                                     },
                                     success: function(response) {

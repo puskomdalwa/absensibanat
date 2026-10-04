@@ -26,13 +26,6 @@ class User extends Authenticatable
                 $user->tokens()->delete();
             }
 
-            // Delete absensi and keterangan
-            $absensiIds = Absensi::where('users_id', $user->id)->pluck('id');
-            if ($absensiIds->isNotEmpty()) {
-                Keterangan::whereIn('absensi_id', $absensiIds)->delete();
-                Absensi::whereIn('id', $absensiIds)->delete();
-            }
-
             // Delete fingerspot device user
             FingerspotDeviceUser::where('pin', (string)$user->id)->delete();
 

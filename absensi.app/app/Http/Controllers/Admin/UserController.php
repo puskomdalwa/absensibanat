@@ -452,24 +452,28 @@ class UserController extends Controller
             abort(403, 'Staff hanya dapat menghapus akun dengan role user.');
         }
 
+        $deleteAbsensi = filter_var($request->input('delete_absensi', false), FILTER_VALIDATE_BOOLEAN);
+
         try {
             DB::beginTransaction();
             $request->validate([
                 'id' => 'required',
             ]);
 
-            if ($data->photo) {
-                $path = public_path('photo/' . $data->photo);
-                if (file_exists($path)) {
-                    @unlink($path);
+            // Jika delete_absensi aktif, hapus riwayat presensi, keterangan, dan foto
+            if ($deleteAbsensi) {
+                if ($data->photo) {
+                    $path = public_path('photo/' . $data->photo);
+                    if (file_exists($path)) {
+                        @unlink($path);
+                    }
                 }
-            }
 
-            // Hapus riwayat presensi dan keterangan terkait terlebih dahulu
-            $absensiIds = Absensi::where('users_id', $data->id)->pluck('id');
-            if ($absensiIds->isNotEmpty()) {
-                Keterangan::whereIn('absensi_id', $absensiIds)->delete();
-                Absensi::whereIn('id', $absensiIds)->delete();
+                $absensiIds = Absensi::where('users_id', $data->id)->pluck('id');
+                if ($absensiIds->isNotEmpty()) {
+                    Keterangan::whereIn('absensi_id', $absensiIds)->delete();
+                    Absensi::whereIn('id', $absensiIds)->delete();
+                }
             }
 
             // Hapus token API jika ada
@@ -482,7 +486,14 @@ class UserController extends Controller
             $enrolledDevices = FingerspotDeviceUser::where('pin', (string)$data->id)->pluck('cloud_id')->all();
             FingerspotDeviceUser::where('pin', (string)$data->id)->delete();
 
+            // Hapus akun pengguna secara permanen dari tabel users
+            if (! $deleteAbsensi) {
+                DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            }
             $data->delete();
+            if (! $deleteAbsensi) {
+                DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            }
 
             DB::commit();
 
@@ -502,13 +513,18 @@ class UserController extends Controller
                 Log::warning('[UserController::delete] Failed to send delete_userinfo to device: ' . $e->getMessage());
             }
 
+            $message = $deleteAbsensi 
+                ? 'Pengguna beserta seluruh riwayat absensinya berhasil dihapus.' 
+                : 'Pengguna berhasil dihapus (riwayat absensi tetap dipertahankan).';
+
             return [
                 'status'  => true,
                 'type'    => 'success',
-                'message' => 'Success',
+                'message' => $message,
                 'request' => $request->all(),
             ];
         } catch (\Throwable $th) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
             DB::rollback();
             return [
                 'status'  => false,
@@ -539,6 +555,8 @@ class UserController extends Controller
             ], 422);
         }
 
+        $deleteAbsensi = filter_var($request->input('delete_absensi', false), FILTER_VALIDATE_BOOLEAN);
+
         try {
             DB::beginTransaction();
 
@@ -568,30 +586,31 @@ class UserController extends Controller
             $validUserIds = $users->pluck('id')->all();
             $deletedPins = array_map('strval', $validUserIds);
 
-            // 1. Hapus file foto
-            foreach ($users as $user) {
-                if ($user->photo) {
-                    $path = public_path('photo/' . $user->photo);
-                    if (file_exists($path)) {
-                        @unlink($path);
+            // 1. Hapus riwayat presensi & file foto HANYA jika delete_absensi aktif
+            if ($deleteAbsensi) {
+                foreach ($users as $user) {
+                    if ($user->photo) {
+                        $path = public_path('photo/' . $user->photo);
+                        if (file_exists($path)) {
+                            @unlink($path);
+                        }
                     }
+                }
+
+                $absensiIds = Absensi::whereIn('users_id', $validUserIds)->pluck('id');
+                if ($absensiIds->isNotEmpty()) {
+                    Keterangan::whereIn('absensi_id', $absensiIds)->delete();
+                    Absensi::whereIn('id', $absensiIds)->delete();
                 }
             }
 
-            // 2. Hapus riwayat presensi dan keterangan secara batch
-            $absensiIds = Absensi::whereIn('users_id', $validUserIds)->pluck('id');
-            if ($absensiIds->isNotEmpty()) {
-                Keterangan::whereIn('absensi_id', $absensiIds)->delete();
-                Absensi::whereIn('id', $absensiIds)->delete();
-            }
-
-            // 3. Hapus token personal access tokens jika ada
+            // 2. Hapus token personal access tokens jika ada
             DB::table('personal_access_tokens')
                 ->where('tokenable_type', User::class)
                 ->whereIn('tokenable_id', $validUserIds)
                 ->delete();
 
-            // 4. Cari mesin tempat user terdaftar sebelum menghapus cache fingerspot lokal
+            // 3. Cari mesin tempat user terdaftar sebelum menghapus cache fingerspot lokal
             $enrolledDeviceUsers = FingerspotDeviceUser::whereIn('pin', $deletedPins)
                 ->select('cloud_id', 'pin')
                 ->get();
@@ -600,12 +619,18 @@ class UserController extends Controller
                 FingerspotDeviceUser::whereIn('pin', $deletedPins)->delete();
             }
 
-            // 5. Hapus akun pengguna secara batch
+            // 4. Hapus akun pengguna secara permanen dari tabel users
+            if (! $deleteAbsensi) {
+                DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            }
             $deletedCount = User::whereIn('id', $validUserIds)->delete();
+            if (! $deleteAbsensi) {
+                DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            }
 
             DB::commit();
 
-            // 6. Dispatch delete_userinfo ke mesin fisik untuk user yang memang terdaftar di mesin
+            // 5. Dispatch delete_userinfo ke mesin fisik untuk user yang terdaftar
             try {
                 if ($enrolledDeviceUsers->isNotEmpty()) {
                     foreach ($enrolledDeviceUsers as $edu) {
@@ -616,13 +641,18 @@ class UserController extends Controller
                 Log::warning('[UserController::bulkDelete] Failed to dispatch delete_userinfo to devices: ' . $e->getMessage());
             }
 
+            $message = $deleteAbsensi
+                ? "Berhasil menghapus {$deletedCount} akun pengguna beserta seluruh riwayat absensinya."
+                : "Berhasil menghapus {$deletedCount} akun pengguna (seluruh riwayat absensi tetap dipertahankan).";
+
             return response()->json([
                 'status'        => true,
                 'type'          => 'success',
-                'message'       => "Berhasil menghapus {$deletedCount} akun pengguna.",
+                'message'       => $message,
                 'deleted_count' => $deletedCount,
             ]);
         } catch (\Throwable $th) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
             DB::rollBack();
             Log::error('Bulk delete users error: ' . $th->getMessage());
             return response()->json([

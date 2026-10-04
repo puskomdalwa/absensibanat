@@ -41,7 +41,11 @@ class Absensi extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'users_id', 'id');
+        return $this->belongsTo(User::class, 'users_id', 'id')->withDefault([
+            'name'     => '(Pengguna Dihapus)',
+            'username' => '-',
+            'photo'    => null,
+        ]);
     }
 
     public function keterangans()
