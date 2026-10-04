@@ -8,6 +8,8 @@ use App\Models\Departemen;
 use App\Models\Type;
 use App\Models\Device;
 use App\Models\FingerspotDeviceUser;
+use App\Models\Absensi;
+use App\Models\Keterangan;
 use App\Http\Services\Fingerspot;
 use Illuminate\Http\Request;
 use App\Http\Services\BulkData;
@@ -463,16 +465,38 @@ class UserController extends Controller
                 }
             }
 
+            // Hapus riwayat presensi dan keterangan terkait terlebih dahulu
+            $absensiIds = Absensi::where('users_id', $data->id)->pluck('id');
+            if ($absensiIds->isNotEmpty()) {
+                Keterangan::whereIn('absensi_id', $absensiIds)->delete();
+                Absensi::whereIn('id', $absensiIds)->delete();
+            }
+
+            // Hapus token API jika ada
+            DB::table('personal_access_tokens')
+                ->where('tokenable_type', User::class)
+                ->where('tokenable_id', $data->id)
+                ->delete();
+
+            // Cek device tempat user terdaftar sebelum menghapus cache lokal
+            $enrolledDevices = FingerspotDeviceUser::where('pin', (string)$data->id)->pluck('cloud_id')->all();
             FingerspotDeviceUser::where('pin', (string)$data->id)->delete();
+
             $data->delete();
 
             DB::commit();
 
-            // Dispatch delete command to all physical devices (Mesin 1 & Mesin 2)
+            // Dispatch delete command ke mesin fisik
             try {
-                $devices = Device::all();
-                foreach ($devices as $dev) {
-                    Fingerspot::deleteUserInfo(null, $dev->cloud_id, (string)$data->id);
+                if (!empty($enrolledDevices)) {
+                    foreach ($enrolledDevices as $cloudId) {
+                        Fingerspot::deleteUserInfo(null, $cloudId, (string)$data->id);
+                    }
+                } else {
+                    $devices = Device::all();
+                    foreach ($devices as $dev) {
+                        Fingerspot::deleteUserInfo(null, $dev->cloud_id, (string)$data->id);
+                    }
                 }
             } catch (\Throwable $e) {
                 Log::warning('[UserController::delete] Failed to send delete_userinfo to device: ' . $e->getMessage());
@@ -502,7 +526,7 @@ class UserController extends Controller
             'ids.*' => 'integer',
         ]);
 
-        @set_time_limit(120);
+        @set_time_limit(180);
 
         $currentUser = $request->user();
         $targetIds = array_diff($request->ids, [$currentUser->id]);
@@ -541,9 +565,10 @@ class UserController extends Controller
                 ], 422);
             }
 
-            $deletedCount = 0;
-            $deletedPins = [];
+            $validUserIds = $users->pluck('id')->all();
+            $deletedPins = array_map('strval', $validUserIds);
 
+            // 1. Hapus file foto
             foreach ($users as $user) {
                 if ($user->photo) {
                     $path = public_path('photo/' . $user->photo);
@@ -551,24 +576,40 @@ class UserController extends Controller
                         @unlink($path);
                     }
                 }
-
-                $deletedPins[] = (string)$user->id;
-                $user->delete();
-                $deletedCount++;
             }
+
+            // 2. Hapus riwayat presensi dan keterangan secara batch
+            $absensiIds = Absensi::whereIn('users_id', $validUserIds)->pluck('id');
+            if ($absensiIds->isNotEmpty()) {
+                Keterangan::whereIn('absensi_id', $absensiIds)->delete();
+                Absensi::whereIn('id', $absensiIds)->delete();
+            }
+
+            // 3. Hapus token personal access tokens jika ada
+            DB::table('personal_access_tokens')
+                ->where('tokenable_type', User::class)
+                ->whereIn('tokenable_id', $validUserIds)
+                ->delete();
+
+            // 4. Cari mesin tempat user terdaftar sebelum menghapus cache fingerspot lokal
+            $enrolledDeviceUsers = FingerspotDeviceUser::whereIn('pin', $deletedPins)
+                ->select('cloud_id', 'pin')
+                ->get();
 
             if (!empty($deletedPins)) {
                 FingerspotDeviceUser::whereIn('pin', $deletedPins)->delete();
             }
 
+            // 5. Hapus akun pengguna secara batch
+            $deletedCount = User::whereIn('id', $validUserIds)->delete();
+
             DB::commit();
 
-            // Dispatch delete_userinfo to all physical devices (Mesin 1 & Mesin 2)
+            // 6. Dispatch delete_userinfo ke mesin fisik untuk user yang memang terdaftar di mesin
             try {
-                $devices = Device::all();
-                foreach ($deletedPins as $pin) {
-                    foreach ($devices as $dev) {
-                        Fingerspot::deleteUserInfo(null, $dev->cloud_id, (string)$pin);
+                if ($enrolledDeviceUsers->isNotEmpty()) {
+                    foreach ($enrolledDeviceUsers as $edu) {
+                        Fingerspot::deleteUserInfo(null, $edu->cloud_id, (string)$edu->pin);
                     }
                 }
             } catch (\Throwable $e) {

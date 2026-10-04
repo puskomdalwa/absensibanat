@@ -9,9 +9,42 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\Contracts\HasApiTokens;
 use Laravel\Sanctum\HasApiTokens as SanctumHasApiTokens;
 
+use App\Models\Absensi;
+use App\Models\Keterangan;
+use App\Models\FingerspotDeviceUser;
+use Illuminate\Support\Facades\DB;
+
 class User extends Authenticatable
 {
     use SanctumHasApiTokens, HasFactory, Notifiable;
+
+    protected static function booted()
+    {
+        static::deleting(function ($user) {
+            // Delete personal access tokens
+            if (method_exists($user, 'tokens')) {
+                $user->tokens()->delete();
+            }
+
+            // Delete absensi and keterangan
+            $absensiIds = Absensi::where('users_id', $user->id)->pluck('id');
+            if ($absensiIds->isNotEmpty()) {
+                Keterangan::whereIn('absensi_id', $absensiIds)->delete();
+                Absensi::whereIn('id', $absensiIds)->delete();
+            }
+
+            // Delete fingerspot device user
+            FingerspotDeviceUser::where('pin', (string)$user->id)->delete();
+
+            // Delete user photo file if exists
+            if ($user->photo) {
+                $photoPath = public_path('photo/' . $user->photo);
+                if (file_exists($photoPath)) {
+                    @unlink($photoPath);
+                }
+            }
+        });
+    }
 
     /**
      * The attributes that are mass assignable.

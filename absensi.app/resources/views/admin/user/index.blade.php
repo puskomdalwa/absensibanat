@@ -224,8 +224,9 @@
                     var processedCount = 0;
                     var successCount = 0;
                     var failedCount = 0;
-                    var chunkSize = 10;
+                    var chunkSize = 15;
                     var currentIndex = 0;
+                    var lastErrorMessage = '';
 
                     Swal.fire({
                         title: 'Menghapus Pengguna...',
@@ -254,10 +255,16 @@
 
                             function runUserDeleteChunk() {
                                 if (currentIndex >= totalUsers) {
+                                    var swalIcon = failedCount === 0 ? 'success' : (successCount > 0 ? 'warning' : 'error');
+                                    var swalTitle = failedCount === 0 ? 'Penghapusan Selesai!' : (successCount > 0 ? 'Penghapusan Sebagian Berhasil' : 'Penghapusan Gagal!');
+                                    var errorNotice = (failedCount > 0 && lastErrorMessage) ? `<div class="alert alert-danger small text-start mt-2 p-2 mb-0"><i class="ti ti-alert-circle me-1"></i>${lastErrorMessage}</div>` : '';
+
                                     Swal.fire({
-                                        icon: 'success',
-                                        title: 'Penghapusan Selesai!',
-                                        html: `<p>Berhasil memproses <strong>${successCount}</strong> akun pengguna.` + (failedCount > 0 ? `<br><span class="text-danger">${failedCount} akun gagal diproses.</span>` : '') + `</p>`,
+                                        icon: swalIcon,
+                                        title: swalTitle,
+                                        html: `<p class="mb-1">Berhasil memproses <strong>${successCount}</strong> akun pengguna.` + 
+                                              (failedCount > 0 ? `<br><span class="text-danger fw-bold">${failedCount} akun gagal diproses.</span>` : '') + 
+                                              `</p>` + errorNotice,
                                         customClass: { confirmButton: 'btn btn-primary' },
                                         buttonsStyling: false
                                     });
@@ -283,15 +290,18 @@
                                         currentIndex += curSize;
 
                                         updateUserProgressUI(processedCount, totalUsers);
-                                        setTimeout(runUserDeleteChunk, 80);
+                                        setTimeout(runUserDeleteChunk, 50);
                                     },
                                     error: function(err) {
+                                        lastErrorMessage = (err.responseJSON && err.responseJSON.message) 
+                                            ? err.responseJSON.message 
+                                            : (err.statusText || 'Terjadi kesalahan pada server');
                                         failedCount += curSize;
                                         processedCount += curSize;
                                         currentIndex += curSize;
 
                                         updateUserProgressUI(processedCount, totalUsers);
-                                        setTimeout(runUserDeleteChunk, 100);
+                                        setTimeout(runUserDeleteChunk, 80);
                                     }
                                 });
                             }
