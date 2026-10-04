@@ -35,7 +35,7 @@ class AppServiceProvider extends ServiceProvider
         
         Carbon::setLocale('id');
 
-        if (!app()->runningInConsole() && app()->environment('production')) {
+        if (!app()->runningInConsole()) {
             $host = request()->getHost();
             $isLocal = in_array($host, ['localhost', '127.0.0.1', '::1'])
                 || str_ends_with($host, '.test')
@@ -44,7 +44,7 @@ class AppServiceProvider extends ServiceProvider
                 || str_starts_with($host, '10.')
                 || str_starts_with($host, '172.');
 
-            if (!$isLocal) {
+            if (!$isLocal || request()->isSecure() || request()->server('HTTP_X_FORWARDED_PROTO') === 'https') {
                 URL::forceScheme('https');
             }
         }

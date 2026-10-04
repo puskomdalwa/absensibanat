@@ -1,4 +1,7 @@
 <meta charset="utf-8" />
+@if (!in_array(request()->getHost(), ['localhost', '127.0.0.1', '::1']) && !str_ends_with(request()->getHost(), '.test') && !str_ends_with(request()->getHost(), '.local'))
+<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+@endif
 <title>@yield('title')</title>
 <meta http-equiv="x-ua-compatible" content="ie=edge" />
 <meta name="description" content="" />

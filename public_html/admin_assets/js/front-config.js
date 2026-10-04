@@ -8,6 +8,9 @@
 'use strict';
 
 window.assetsPath = document.documentElement.getAttribute('data-assets-path');
+if (window.location.protocol === 'https:' && window.assetsPath && window.assetsPath.startsWith('http://')) {
+  window.assetsPath = window.assetsPath.replace('http://', 'https://');
+}
 window.templateName = document.documentElement.getAttribute('data-template');
 window.rtlSupport = true; // set true for rtl support (rtl + ltr), false for ltr only.
 
