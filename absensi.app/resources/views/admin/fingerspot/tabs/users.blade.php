@@ -13,8 +13,11 @@
             <button type="button" class="btn btn-label-secondary btn-sm waves-effect" data-bs-toggle="modal" data-bs-target="#modal-push-user">
                 <i class="ti ti-user-plus me-1"></i> Daftarkan User Manual
             </button>
-            <button type="button" class="btn btn-primary btn-sm waves-effect waves-light" id="btn-batch-push-users">
+            <button type="button" class="btn btn-label-primary btn-sm waves-effect" id="btn-batch-push-users">
                 <i class="ti ti-users-plus me-1"></i> Tambahkan Semua User ke Mesin
+            </button>
+            <button type="button" class="btn btn-primary btn-sm waves-effect waves-light" id="btn-batch-copy-fingerprint">
+                <i class="ti ti-fingerprint me-1"></i> Salin Fingerprint Antar Mesin
             </button>
         </div>
     </div>
@@ -33,6 +36,9 @@
                 </select>
             </div>
             <div class="col-md-8 col-sm-6 text-end">
+                <button type="button" class="btn btn-sm btn-info waves-effect waves-light me-2 d-none" id="btn-bulk-copy-fingerprint-selected">
+                    <i class="ti ti-fingerprint me-1"></i> Salin Fingerprint Terpilih (<span id="bulk-copy-fp-count">0</span>)
+                </button>
                 <button type="button" class="btn btn-sm btn-danger waves-effect waves-light me-2 d-none" id="btn-bulk-delete-device-users">
                     <i class="ti ti-trash me-1"></i> Hapus Terpilih dari Mesin (<span id="bulk-device-user-count">0</span>)
                 </button>

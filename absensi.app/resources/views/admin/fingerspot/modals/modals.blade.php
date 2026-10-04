@@ -165,35 +165,89 @@
 {{-- Modal Copy / Transfer User Antar Mesin --}}
 <div class="modal fade" id="modal-copy-user" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-light">
-                <h5 class="modal-title fw-bold"><i class="ti ti-copy me-1 text-primary"></i> Transfer / Copy User Antar Mesin</h5>
+        <div class="modal-content shadow-sm" style="border-radius: 14px;">
+            <div class="modal-header py-3 px-4 bg-light border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="avatar avatar-sm rounded-3 bg-label-primary d-flex align-items-center justify-content-center">
+                        <i class="ti ti-fingerprint fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0">Salin Data / Fingerprint ke Mesin Lain</h5>
+                        <small class="text-muted">Kirim template sidik jari atau profil pengguna ke mesin tujuan</small>
+                    </div>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="form-copy-user">
                 @csrf
                 <input type="hidden" name="source_cloud_id" id="copy-source-cloud-id">
                 <input type="hidden" name="pin" id="copy-pin">
-                <div class="modal-body">
-                    <p class="mb-3">
-                        Pengguna: <strong class="text-primary" id="copy-user-name">-</strong> (PIN: <span id="copy-user-pin">-</span>)<br>
-                        Mesin Sumber: <code id="copy-source-cloud-id-text">-</code>
-                    </p>
+                <div class="modal-body p-4">
+                    <!-- User & Mesin Info Card -->
+                    <div class="bg-light p-3 rounded-3 mb-3 border">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small">Pengguna Terpilih:</span>
+                            <span class="badge bg-label-primary font-monospace fw-bold">PIN: <span id="copy-user-pin">-</span></span>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1" id="copy-user-name">-</h6>
+                        <div class="small text-muted">
+                            Mesin Sumber: <code class="text-primary fw-semibold" id="copy-source-cloud-id-text">-</code>
+                        </div>
+                    </div>
+
+                    <!-- Status Biometrik Template -->
+                    <div id="copy-user-bio-alert" class="mb-3">
+                        <!-- Dynamic via JS: Status template sidik jari siap / belum -->
+                    </div>
+
+                    <!-- Pilihan Mode Salin -->
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Pilih Mesin Tujuan <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold text-dark mb-2">Pilih Mode Salin <span class="text-danger">*</span></label>
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="card border border-2 shadow-none cursor-pointer p-3 mb-0" id="card-copy-mode-fp" style="border-radius: 10px; cursor: pointer; border-color: #7367f0 !important; background-color: rgba(115, 103, 240, 0.04);">
+                                    <div class="form-check mb-1">
+                                        <input class="form-check-input" type="radio" name="copy_mode" id="copy-mode-fp" value="fingerprint_only" checked>
+                                        <label class="form-check-label fw-bold text-dark" for="copy-mode-fp">
+                                            <i class="ti ti-fingerprint me-1 text-primary"></i> Hanya Salin Fingerprint / Sidik Jari Saja
+                                        </label>
+                                    </div>
+                                    <small class="text-muted ps-4 d-block">
+                                        Sangat cocok & dianjurkan karena akun pengguna sudah ada di kedua mesin. Nama dan profil mesin tujuan akan tetap dipertahankan.
+                                    </small>
+                                </label>
+                            </div>
+                            <div class="col-12">
+                                <label class="card border border-2 shadow-none cursor-pointer p-3 mb-0" id="card-copy-mode-full" style="border-radius: 10px; cursor: pointer; border-color: #dbdade !important; background-color: #fff;">
+                                    <div class="form-check mb-1">
+                                        <input class="form-check-input" type="radio" name="copy_mode" id="copy-mode-full" value="full">
+                                        <label class="form-check-label fw-bold text-dark" for="copy-mode-full">
+                                            <i class="ti ti-copy me-1 text-secondary"></i> Salin Lengkap (Profil, Hak Akses & Sidik Jari)
+                                        </label>
+                                    </div>
+                                    <small class="text-muted ps-4 d-block">
+                                        Mengirim ulang nama, tingkat hak akses, password, RFID, dan sidik jari dari mesin sumber ke mesin tujuan.
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mesin Tujuan -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark" for="copy-target-cloud-id">Pilih Mesin Tujuan <span class="text-danger">*</span></label>
                         <select class="form-select" name="target_cloud_id" id="copy-target-cloud-id" required>
                             @foreach ($devices as $dev)
-                                <option value="{{ $dev->cloud_id }}">{{ $dev->name }} ({{ $dev->cloud_id }})</option>
+                                <option value="{{ $dev->cloud_id }}" data-cloud-id="{{ $dev->cloud_id }}">{{ $dev->name }} ({{ $dev->cloud_id }})</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="alert alert-info py-2 mb-0 small">
-                        <i class="ti ti-info-circle me-1"></i> Data profil beserta template sidik jari / wajah yang tersimpan di sistem akan dikirim ke mesin target.
-                    </div>
                 </div>
-                <div class="modal-footer bg-light">
+                <div class="modal-footer bg-light py-3 px-4">
                     <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary"><i class="ti ti-send me-1"></i> Proses Duplikasi</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-copy-user">
+                        <i class="ti ti-send me-1"></i> Mulai Salin ke Mesin Tujuan
+                    </button>
                 </div>
             </form>
         </div>
@@ -596,6 +650,303 @@
                         <i class="ti ti-circle-check me-1 fs-5"></i> ACC & Mulai Tambahkan ke Mesin
                     </button>
                     <button type="button" class="btn btn-primary d-none shadow-sm fw-semibold px-4 py-2" id="btn-finish-batch" style="border-radius: 8px;">
+                        <i class="ti ti-check-double me-1"></i> Selesai & Perbarui Tabel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal Salin Fingerprint Antar Mesin (Batch Copy Fingerprint Anti-Timeout) --}}
+<div class="modal fade" id="modal-batch-copy-fingerprint" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg border-0" style="border-radius: 16px; overflow: hidden;">
+            <!-- Modal Header -->
+            <div class="modal-header py-3 px-4 bg-white border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="avatar avatar-md rounded-3 bg-label-info d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px;">
+                        <i class="ti ti-fingerprint fs-3 text-info"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0">Salin Fingerprint Antar Mesin (Batch)</h5>
+                        <small class="text-muted">Duplikasi data biometrik/sidik jari dari satu mesin ke mesin lain</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="btn-close-batch-fp-modal"></button>
+            </div>
+
+            <!-- STEP 1: Pemilihan Mesin Sumber & Tujuan -->
+            <div class="modal-body p-4" id="batch-fp-step-1">
+                <div class="alert alert-primary d-flex align-items-center gap-3 p-3 mb-3 border-0 shadow-sm" style="border-radius: 12px; background: linear-gradient(135deg, rgba(0, 207, 232, 0.08) 0%, rgba(115, 103, 240, 0.12) 100%);">
+                    <div class="avatar avatar-sm rounded-circle bg-info text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width: 36px; height: 36px;">
+                        <i class="ti ti-info-circle fs-4"></i>
+                    </div>
+                    <div class="small text-dark flex-grow-1">
+                        <div class="fw-bold mb-1 text-info">Panduan Salin Fingerprint</div>
+                        Fitur ini akan mengambil data biometrik sidik jari yang ada di <strong>Mesin Sumber</strong> lalu mengirimkannya ke <strong>Mesin Tujuan</strong>. Akun dengan role <strong>Superadmin otomatis dikecualikan</strong> demi keamanan.
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <!-- Mesin Sumber -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-dark mb-1">
+                            <i class="ti ti-login me-1 text-primary"></i> 1. Mesin Sumber (Asal Sidik Jari) <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="batch-fp-source-cloud-id">
+                            @foreach ($devices as $dev)
+                                <option value="{{ $dev->cloud_id }}">{{ $dev->name }} ({{ $dev->cloud_id }})</option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">Mesin tempat user telah merekam sidik jari.</small>
+                    </div>
+
+                    <!-- Mesin Tujuan -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-dark mb-1">
+                            <i class="ti ti-logout me-1 text-success"></i> 2. Mesin Tujuan (Penerima Sidik Jari) <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="batch-fp-target-cloud-id">
+                            @foreach ($devices as $dev)
+                                <option value="{{ $dev->cloud_id }}" {{ $loop->iteration == 2 ? 'selected' : '' }}>{{ $dev->name }} ({{ $dev->cloud_id }})</option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">Mesin yang akan menerima salinan sidik jari.</small>
+                    </div>
+
+                    <!-- Filter Cakupan Pengguna -->
+                    <div class="col-12 mt-3">
+                        <label class="form-label fw-bold text-dark mb-2">3. Cakupan Pengguna yang Diproses</label>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="card border border-2 shadow-none cursor-pointer p-3 mb-0" id="card-batch-fp-scope-all" style="border-radius: 10px; cursor: pointer; border-color: #7367f0 !important; background-color: rgba(115, 103, 240, 0.04);">
+                                    <div class="form-check mb-1">
+                                        <input class="form-check-input" type="radio" name="batch_fp_scope" id="batch-fp-scope-all" value="all" checked>
+                                        <label class="form-check-label fw-bold text-dark" for="batch-fp-scope-all">
+                                            <i class="ti ti-users me-1 text-primary"></i> Semua Pengguna Pemilik Sidik Jari
+                                        </label>
+                                    </div>
+                                    <small class="text-muted ps-4 d-block">
+                                        Analisis seluruh user di mesin sumber yang memiliki sidik jari.
+                                    </small>
+                                </label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="card border border-2 shadow-none cursor-pointer p-3 mb-0" id="card-batch-fp-scope-selected" style="border-radius: 10px; cursor: pointer; border-color: #dbdade !important; background-color: #fff;">
+                                    <div class="form-check mb-1">
+                                        <input class="form-check-input" type="radio" name="batch_fp_scope" id="batch-fp-scope-selected" value="selected">
+                                        <label class="form-check-label fw-bold text-dark" for="batch-fp-scope-selected">
+                                            <i class="ti ti-checkbox me-1 text-secondary"></i> Hanya Pengguna Terpilih (<span id="batch-fp-selected-count-badge">0</span> user)
+                                        </label>
+                                    </div>
+                                    <small class="text-muted ps-4 d-block">
+                                        Hanya salin user yang dicentang di tabel pengguna.
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2: Hasil Analisa & Tabel Konfirmasi -->
+            <div class="modal-body p-4 d-none" id="batch-fp-step-2">
+                <!-- Metrics -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3 col-6">
+                        <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px; background: #f8f9fa; border: 1px solid #e9ecef !important;">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="text-muted small fw-semibold">Punya Sidik Jari</span>
+                                    <div class="avatar avatar-xs rounded-circle bg-label-info d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                        <i class="ti ti-fingerprint" style="font-size: 14px;"></i>
+                                    </div>
+                                </div>
+                                <h3 class="mb-0 fw-bold text-dark" id="batch-fp-total-candidates">0</h3>
+                                <small class="text-muted">Di Mesin Sumber</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-6">
+                        <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px; background: rgba(40, 199, 111, 0.08); border: 1px solid rgba(40, 199, 111, 0.25) !important;">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="text-success small fw-bold">Template Siap</span>
+                                    <div class="avatar avatar-xs rounded-circle bg-label-success d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                        <i class="ti ti-check" style="font-size: 14px;"></i>
+                                    </div>
+                                </div>
+                                <h3 class="mb-0 fw-bold text-success" id="batch-fp-total-ready">0</h3>
+                                <small class="text-success">Bisa Langsung Disalin</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-6">
+                        <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px; background: rgba(255, 159, 67, 0.08); border: 1px solid rgba(255, 159, 67, 0.25) !important;">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="text-warning small fw-bold">Perlu Refresh Detail</span>
+                                    <div class="avatar avatar-xs rounded-circle bg-label-warning d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                        <i class="ti ti-alert-triangle" style="font-size: 14px;"></i>
+                                    </div>
+                                </div>
+                                <h3 class="mb-0 fw-bold text-warning" id="batch-fp-total-missing">0</h3>
+                                <small class="text-warning">Template Belum Ada</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-6">
+                        <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px; background: rgba(115, 103, 240, 0.08); border: 1px solid rgba(115, 103, 240, 0.25) !important;">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="text-primary small fw-bold">Superadmin</span>
+                                    <div class="avatar avatar-xs rounded-circle bg-label-primary d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                        <i class="ti ti-shield" style="font-size: 14px;"></i>
+                                    </div>
+                                </div>
+                                <h3 class="mb-0 fw-bold text-primary" id="batch-fp-total-skipped-sa">0</h3>
+                                <small class="text-primary">Dikecualikan</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Missing Templates Action Alert -->
+                <div class="alert alert-warning d-none align-items-center justify-content-between p-3 mb-3 border-0 shadow-sm" id="batch-fp-missing-banner" style="border-radius: 12px;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="ti ti-alert-triangle fs-3 text-warning"></i>
+                        <div class="small">
+                            <strong>Template Belum Tersimpan:</strong> Terdapat <span class="fw-bold" id="batch-fp-missing-count-text">0</span> user yang memiliki sidik jari di mesin, tetapi template belum tersimpan di server lokal.
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-warning waves-effect flex-shrink-0" id="btn-batch-fetch-templates-now">
+                        <i class="ti ti-download me-1"></i> Tarik Template dari Mesin Sekarang
+                    </button>
+                </div>
+
+                <!-- Preview Table -->
+                <div class="card border shadow-sm mb-3" style="border-radius: 12px; overflow: hidden; border-color: #e9ecef !important;">
+                    <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="ti ti-list-check text-info fs-5"></i>
+                            <span class="fw-bold text-dark small">Daftar Pengguna Siap Disalin</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="batch-fp-filter-ready-only" checked>
+                                <label class="form-check-label small text-muted" for="batch-fp-filter-ready-only">Hanya yang Siap</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive" style="max-height: 220px; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0" id="table-batch-fp-preview">
+                            <thead style="background-color: #f8f9fa; position: sticky; top: 0; z-index: 10;">
+                                <tr>
+                                    <th style="width: 40px;" class="text-center">
+                                        <input type="checkbox" class="form-check-input" id="check-all-batch-fp">
+                                    </th>
+                                    <th style="width: 80px; font-size: 11px; font-weight: 700; text-transform: uppercase;">PIN</th>
+                                    <th style="font-size: 11px; font-weight: 700; text-transform: uppercase;">Nama Pengguna</th>
+                                    <th style="font-size: 11px; font-weight: 700; text-transform: uppercase; width: 90px;" class="text-center">Sidik Jari</th>
+                                    <th style="font-size: 11px; font-weight: 700; text-transform: uppercase;">Status Template</th>
+                                    <th style="font-size: 11px; font-weight: 700; text-transform: uppercase;">Status di Mesin Tujuan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batch-fp-preview-tbody">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="alert alert-info py-2 px-3 mb-0 small">
+                    <i class="ti ti-info-circle me-1"></i> Sistem akan memproses salin sidik jari secara bertahap (batch 5 civitas/request) langsung ke mesin tujuan.
+                </div>
+            </div>
+
+            <!-- STEP 3: Progress & Live Execution -->
+            <div class="modal-body p-4 d-none" id="batch-fp-step-3">
+                <div class="text-center py-2 mb-3">
+                    <div class="avatar avatar-xl rounded-circle bg-label-info mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                        <div class="spinner-border text-info" role="status" id="batch-fp-live-spinner" style="width: 2rem; height: 2rem;">
+                            <span class="visually-hidden">Menyalin...</span>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1" id="batch-fp-status-title">Sedang Menyalin Fingerprint ke Mesin Tujuan...</h5>
+                    <p class="text-muted small mb-0" id="batch-fp-status-subtitle">Mohon jangan menutup jendela browser ini hingga seluruh batch selesai.</p>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mb-4 bg-light p-3 rounded-3 border">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold text-dark small" id="batch-fp-progress-text">Memproses: 0 / 0 Pengguna</span>
+                        <span class="badge bg-info rounded-pill px-3 py-1 fw-bold fs-6" id="batch-fp-progress-percent">0%</span>
+                    </div>
+                    <div class="progress" style="height: 12px; border-radius: 6px; background-color: #e9ecef;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" 
+                             id="batch-fp-progress-bar" style="width: 0%;" 
+                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+
+                <!-- Counters Badge -->
+                <div class="row g-3 mb-3 text-center">
+                    <div class="col-4">
+                        <div class="p-3 border rounded-3 shadow-none" style="background: rgba(40, 199, 111, 0.08); border-color: rgba(40, 199, 111, 0.25) !important;">
+                            <small class="text-success fw-bold d-block mb-1"><i class="ti ti-check me-1"></i> Berhasil</small>
+                            <span class="fs-4 fw-bold text-success" id="batch-fp-count-success">0</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-3 border rounded-3 shadow-none" style="background: rgba(0, 207, 232, 0.08); border-color: rgba(0, 207, 232, 0.25) !important;">
+                            <small class="text-info fw-bold d-block mb-1"><i class="ti ti-arrow-forward me-1"></i> Dilewati</small>
+                            <span class="fs-4 fw-bold text-info" id="batch-fp-count-skipped">0</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-3 border rounded-3 shadow-none" style="background: rgba(234, 84, 85, 0.08); border-color: rgba(234, 84, 85, 0.25) !important;">
+                            <small class="text-danger fw-bold d-block mb-1"><i class="ti ti-x me-1"></i> Gagal</small>
+                            <span class="fs-4 fw-bold text-danger" id="batch-fp-count-failed">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Log Console -->
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <label class="form-label small fw-bold text-dark mb-0"><i class="ti ti-terminal me-1 text-info"></i> Live Execution Log:</label>
+                    <span class="badge bg-label-secondary font-monospace" style="font-size: 10px;">Autoscroll Active</span>
+                </div>
+                <div class="p-3 rounded-3 font-monospace small text-light shadow-inner" id="batch-fp-live-log" 
+                     style="background-color: #1e1e2d; height: 180px; overflow-y: auto; font-size: 11.5px; line-height: 1.6; border: 1px solid #2b2b40;">
+                    <div class="text-muted">[Sistem] Menunggu antrean salin fingerprint...</div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer bg-white border-top py-3 px-4 d-flex justify-content-between align-items-center">
+                <div id="batch-fp-footer-left">
+                    <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal" id="btn-batch-fp-cancel" style="border-radius: 8px;">
+                        Batal
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary d-none fw-semibold" id="btn-batch-fp-back-to-step-1" style="border-radius: 8px;">
+                        <i class="ti ti-arrow-left me-1"></i> Kembali / Ubah Mesin
+                    </button>
+                    <button type="button" class="btn btn-outline-danger d-none fw-semibold" id="btn-batch-fp-pause" style="border-radius: 8px;">
+                        <i class="ti ti-player-pause me-1"></i> Hentikan
+                    </button>
+                </div>
+                <div id="batch-fp-footer-right">
+                    <button type="button" class="btn btn-info shadow-sm fw-semibold px-4" id="btn-precheck-batch-fp" style="border-radius: 8px;">
+                        <i class="ti ti-search me-1"></i> Analisa & Cek Sidik Jari
+                    </button>
+                    <button type="button" class="btn btn-success d-none shadow-sm fw-semibold px-4 py-2" id="btn-start-batch-copy-fp" style="border-radius: 8px; background: linear-gradient(135deg, #28c76f 0%, #1f9d55 100%); border: none;">
+                        <i class="ti ti-circle-check me-1 fs-5"></i> ACC & Mulai Salin Sidik Jari (<span id="btn-batch-fp-count-selected">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-primary d-none shadow-sm fw-semibold px-4 py-2" id="btn-finish-batch-fp" style="border-radius: 8px;">
                         <i class="ti ti-check-double me-1"></i> Selesai & Perbarui Tabel
                     </button>
                 </div>

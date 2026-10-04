@@ -211,6 +211,9 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,staff'])->group(function
         Route::post('/users/copy', [FingerspotController::class, 'deviceUsersCopy'])->name('admin.fingerspot.users.copy');
         Route::post('/users/batch-precheck', [FingerspotController::class, 'batchUsersPrecheck'])->name('admin.fingerspot.users.batch_precheck');
         Route::post('/users/batch-process', [FingerspotController::class, 'batchUsersProcess'])->name('admin.fingerspot.users.batch_process');
+        Route::post('/users/batch-copy-fingerprint-precheck', [FingerspotController::class, 'batchCopyFingerprintPrecheck'])->name('admin.fingerspot.users.batch_copy_fingerprint_precheck');
+        Route::post('/users/batch-copy-fingerprint-process', [FingerspotController::class, 'batchCopyFingerprintProcess'])->name('admin.fingerspot.users.batch_copy_fingerprint_process');
+        Route::post('/users/batch-fetch-templates', [FingerspotController::class, 'batchFetchTemplates'])->name('admin.fingerspot.users.batch_fetch_templates');
 
         // Commands & Webhook Logs
         Route::get('/commands/data', [FingerspotController::class, 'commandsData'])->name('admin.fingerspot.commands.data');

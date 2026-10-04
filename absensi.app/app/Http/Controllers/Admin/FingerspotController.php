@@ -363,6 +363,8 @@ class FingerspotController extends Controller
                 return $row->last_sync_at ? $row->last_sync_at->diffForHumans() : '-';
             })
             ->addColumn('action', function ($row) {
+                $hasTemplate = !empty($row->template) ? '1' : '0';
+                $fingerCount = (int)$row->finger;
                 return '
                     <div class="d-inline-flex gap-1">
                         <button type="button" class="btn btn-sm btn-icon btn-label-info btn-get-userinfo" data-cloud-id="' . e($row->cloud_id) . '" data-pin="' . e($row->pin) . '" title="Refresh Detail dari Mesin">
@@ -371,7 +373,7 @@ class FingerspotController extends Controller
                         <button type="button" class="btn btn-sm btn-icon btn-label-success btn-reg-online" data-cloud-id="' . e($row->cloud_id) . '" data-pin="' . e($row->pin) . '" data-name="' . e($row->name) . '" title="Registrasi Biometrik Online">
                             <i class="ti ti-fingerprint ti-xs"></i>
                         </button>
-                        <button type="button" class="btn btn-sm btn-icon btn-label-primary btn-copy-user" data-cloud-id="' . e($row->cloud_id) . '" data-pin="' . e($row->pin) . '" data-name="' . e($row->name) . '" title="Transfer / Copy ke Mesin Lain">
+                        <button type="button" class="btn btn-sm btn-icon btn-label-primary btn-copy-user" data-cloud-id="' . e($row->cloud_id) . '" data-pin="' . e($row->pin) . '" data-name="' . e($row->name) . '" data-finger="' . $fingerCount . '" data-has-template="' . $hasTemplate . '" title="Transfer / Salin User atau Fingerprint">
                             <i class="ti ti-copy ti-xs"></i>
                         </button>
                         <button type="button" class="btn btn-sm btn-icon btn-label-danger btn-delete-device-user" data-cloud-id="' . e($row->cloud_id) . '" data-pin="' . e($row->pin) . '" data-name="' . e($row->name) . '" title="Hapus dari Mesin">
@@ -380,7 +382,9 @@ class FingerspotController extends Controller
                     </div>';
             })
             ->addColumn('checkbox', function ($row) {
-                return '<div class="text-center"><input type="checkbox" class="form-check-input device-user-row-checkbox" data-cloud-id="' . e($row->cloud_id) . '" data-pin="' . e($row->pin) . '" data-name="' . e($row->name) . '"></div>';
+                $hasTemplate = !empty($row->template) ? '1' : '0';
+                $fingerCount = (int)$row->finger;
+                return '<div class="text-center"><input type="checkbox" class="form-check-input device-user-row-checkbox" data-cloud-id="' . e($row->cloud_id) . '" data-pin="' . e($row->pin) . '" data-name="' . e($row->name) . '" data-finger="' . $fingerCount . '" data-has-template="' . $hasTemplate . '"></div>';
             })
             ->rawColumns(['checkbox', 'user_display', 'credentials', 'privilege', 'last_sync_at', 'action'])
             ->toJson();
@@ -589,10 +593,30 @@ class FingerspotController extends Controller
             'source_cloud_id' => 'required|string',
             'target_cloud_id' => 'required|string|different:source_cloud_id',
             'pin'             => 'required|string',
+            'copy_mode'       => 'nullable|in:fingerprint_only,full',
         ]);
 
+        $pin = (string)$request->pin;
+        $copyMode = $request->input('copy_mode', 'fingerprint_only');
+
+        // Check if user is superadmin
+        $isSuperAdmin = User::where(function ($q) use ($pin) {
+            $q->where('id', $pin)
+              ->orWhere('kode', $pin)
+              ->orWhere('username', $pin);
+        })->whereHas('role', function ($q) {
+            $q->where(DB::raw('LOWER(TRIM(akses))'), 'superadmin');
+        })->exists();
+
+        if ($isSuperAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User dengan role Superadmin tidak diperkenankan untuk disalin ke mesin biometrik.',
+            ], 422);
+        }
+
         $sourceUser = FingerspotDeviceUser::where('cloud_id', $request->source_cloud_id)
-            ->where('pin', $request->pin)
+            ->where('pin', $pin)
             ->first();
 
         if (!$sourceUser) {
@@ -605,6 +629,73 @@ class FingerspotController extends Controller
         $hasBiometrics = ($sourceUser->finger > 0 || $sourceUser->face > 0 || $sourceUser->vein > 0);
         $hasTemplate = !empty($sourceUser->template);
 
+        $targetDevice = Device::where('cloud_id', $request->target_cloud_id)->first();
+        $targetDevName = $targetDevice ? $targetDevice->name : $request->target_cloud_id;
+
+        // MODE: Fingerprint Only
+        if ($copyMode === 'fingerprint_only') {
+            if (!$hasTemplate) {
+                $detail = $hasBiometrics 
+                    ? "Mesin sumber mendeteksi {$sourceUser->finger} sidik jari, tetapi data template belum tersimpan di server." 
+                    : "User tidak memiliki data sidik jari di mesin sumber.";
+                return response()->json([
+                    'success' => false,
+                    'message' => "Tidak ada template sidik jari yang dapat disalin. {$detail} Pastikan Mesin Sumber menyala & online, lalu klik tombol 'Refresh Detail' (ikon biru) terlebih dahulu."
+                ], 422);
+            }
+
+            // Look up existing user on target device to keep original name & credentials intact
+            $targetUser = FingerspotDeviceUser::where('cloud_id', $request->target_cloud_id)
+                ->where('pin', $pin)
+                ->first();
+
+            $localUser = User::where('id', $pin)->first();
+
+            $name = $targetUser && !empty($targetUser->name) 
+                ? $targetUser->name 
+                : ($sourceUser->name ?: ($localUser ? $localUser->name : "User #{$pin}"));
+            $privilege = $targetUser ? $targetUser->privilege : $sourceUser->privilege;
+            $password = $targetUser ? ($targetUser->password ?? '') : '';
+            $rfid = $targetUser ? ($targetUser->rfid ?? '') : '';
+            $template = $sourceUser->template;
+            $fingerCount = $sourceUser->finger ?: 1;
+
+            $res = Fingerspot::setUserInfo(
+                null,
+                $request->target_cloud_id,
+                $pin,
+                $name,
+                $privilege,
+                $password,
+                $rfid,
+                $template
+            );
+
+            // Update target cache with the new template
+            FingerspotDeviceUser::updateOrCreate(
+                [
+                    'cloud_id' => $request->target_cloud_id,
+                    'pin'      => $pin,
+                ],
+                [
+                    'name'         => $name,
+                    'privilege'    => $privilege,
+                    'finger'       => $fingerCount,
+                    'password'     => $password,
+                    'rfid'         => $rfid,
+                    'template'     => $template,
+                    'last_sync_at' => now(),
+                ]
+            );
+
+            return response()->json([
+                'success'  => true,
+                'message'  => "Perintah salin fingerprint PIN {$pin} ({$name}) ke {$targetDevName} berhasil dikirim.",
+                'response' => $res,
+            ]);
+        }
+
+        // MODE: Full copy
         if ($hasBiometrics && !$hasTemplate) {
             return response()->json([
                 'success' => false,
@@ -646,7 +737,7 @@ class FingerspotController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Perintah duplikasi user PIN {$sourceUser->pin} {$bioMsg} ke mesin target telah dikirimkan.",
+            'message' => "Perintah duplikasi user PIN {$sourceUser->pin} {$bioMsg} ke {$targetDevName} telah dikirimkan.",
             'response' => $res,
         ]);
     }
@@ -924,6 +1015,362 @@ class FingerspotController extends Controller
             'skipped_count' => $skippedCount,
             'failed_count'  => $failedCount,
             'logs'          => $logs,
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BATCH FINGERPRINT COPY (TRANSFER BIOMETRICS BETWEEN DEVICES)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Pre-check users having biometric fingerprints on source device before batch copying to target device.
+     */
+    public function batchCopyFingerprintPrecheck(Request $request)
+    {
+        $request->validate([
+            'source_cloud_id' => 'required|string',
+            'target_cloud_id' => 'required|string|different:source_cloud_id',
+            'pins'            => 'nullable|array',
+            'pins.*'          => 'string',
+        ]);
+
+        $sourceCloudId = $request->source_cloud_id;
+        $targetCloudId = $request->target_cloud_id;
+        $pinsFilter = $request->pins;
+
+        $sourceDevice = Device::where('cloud_id', $sourceCloudId)->first();
+        $targetDevice = Device::where('cloud_id', $targetCloudId)->first();
+
+        if (!$sourceDevice || !$targetDevice) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Perangkat sumber atau tujuan tidak valid.',
+            ], 422);
+        }
+
+        // Superadmin PINs to strictly exclude
+        $superadminPins = User::whereHas('role', function ($q) {
+            $q->where(DB::raw('LOWER(TRIM(akses))'), 'superadmin');
+        })->pluck('id')->map(fn($id) => (string)$id)->toArray();
+
+        // Query source users on this machine
+        $query = FingerspotDeviceUser::where('cloud_id', $sourceCloudId);
+
+        if (!empty($pinsFilter)) {
+            $query->whereIn('pin', array_map('strval', $pinsFilter));
+        } else {
+            // Find users who have biometric indicator or template
+            $query->where(function ($q) {
+                $q->where('finger', '>', 0)
+                  ->orWhere('face', '>', 0)
+                  ->orWhere('vein', '>', 0)
+                  ->orWhere(function($sq) {
+                      $sq->whereNotNull('template')->where('template', '!=', '');
+                  });
+            });
+        }
+
+        $sourceUsers = $query->orderBy('pin', 'asc')->get();
+
+        // Target device users for cross-reference
+        $targetUsers = FingerspotDeviceUser::where('cloud_id', $targetCloudId)
+            ->get()
+            ->keyBy('pin');
+
+        // Local users for name resolution fallback
+        $localUsers = User::whereIn('id', $sourceUsers->pluck('pin')->toArray())
+            ->get()
+            ->keyBy('id');
+
+        $usersList = [];
+        $readyPins = [];
+        $missingTemplatePins = [];
+        $totalReady = 0;
+        $totalMissing = 0;
+        $totalSkippedSuperadmin = 0;
+
+        foreach ($sourceUsers as $u) {
+            $pinStr = (string)$u->pin;
+
+            if (in_array($pinStr, $superadminPins)) {
+                $totalSkippedSuperadmin++;
+                continue;
+            }
+
+            $hasTemplate = !empty($u->template);
+            $fingerCount = (int)$u->finger;
+            $userName = $u->name ?: ($localUsers->has($pinStr) ? $localUsers[$pinStr]->name : "User #{$pinStr}");
+
+            $targetExists = $targetUsers->has($pinStr);
+            $targetUser = $targetExists ? $targetUsers[$pinStr] : null;
+            $targetHasFp = $targetUser && ($targetUser->finger > 0 || !empty($targetUser->template));
+
+            if ($hasTemplate) {
+                $totalReady++;
+                $readyPins[] = $pinStr;
+                $statusType = 'ready';
+                $statusBadge = 'success';
+                $statusLabel = 'Siap Disalin';
+                $statusDetail = $targetExists 
+                    ? ($targetHasFp ? 'User ada di target, sidik jari akan diperbarui' : 'User ada di target, siap pasang sidik jari')
+                    : 'User belum ada di target (akan didaftarkan otomatis)';
+            } else {
+                $totalMissing++;
+                $missingTemplatePins[] = $pinStr;
+                $statusType = 'missing_template';
+                $statusBadge = 'warning';
+                $statusLabel = 'Belum Ada Template';
+                $statusDetail = $fingerCount > 0 
+                    ? "Ada {$fingerCount} sidik jari di mesin, tetapi template belum tersimpan di server lokal"
+                    : "Belum ada template biometrik di server lokal";
+            }
+
+            $usersList[] = [
+                'pin'             => $pinStr,
+                'name'            => $userName,
+                'finger'          => $fingerCount,
+                'has_template'    => $hasTemplate,
+                'target_exists'   => $targetExists,
+                'target_has_fp'   => $targetHasFp,
+                'status_type'     => $statusType,
+                'status_badge'    => $statusBadge,
+                'status_label'    => $statusLabel,
+                'status_detail'   => $statusDetail,
+            ];
+        }
+
+        return response()->json([
+            'status'                   => true,
+            'source_device'            => [
+                'name'     => $sourceDevice->name,
+                'cloud_id' => $sourceDevice->cloud_id,
+            ],
+            'target_device'            => [
+                'name'     => $targetDevice->name,
+                'cloud_id' => $targetDevice->cloud_id,
+            ],
+            'total_source_candidates'  => count($usersList),
+            'total_ready'              => $totalReady,
+            'total_missing_template'   => $totalMissing,
+            'total_skipped_superadmin' => $totalSkippedSuperadmin,
+            'ready_pins'               => $readyPins,
+            'missing_template_pins'    => $missingTemplatePins,
+            'users'                    => $usersList,
+        ]);
+    }
+
+    /**
+     * Process discrete batch of fingerprint copies from source device to target device.
+     */
+    public function batchCopyFingerprintProcess(Request $request)
+    {
+        $request->validate([
+            'source_cloud_id' => 'required|string',
+            'target_cloud_id' => 'required|string|different:source_cloud_id',
+            'pins'            => 'required|array|min:1',
+            'pins.*'          => 'required|string',
+        ]);
+
+        @set_time_limit(120);
+
+        $sourceCloudId = $request->source_cloud_id;
+        $targetCloudId = $request->target_cloud_id;
+        $pins = array_map('strval', $request->pins);
+
+        $sourceDevice = Device::where('cloud_id', $sourceCloudId)->first();
+        $targetDevice = Device::where('cloud_id', $targetCloudId)->first();
+        $targetDevName = $targetDevice ? $targetDevice->name : $targetCloudId;
+
+        // Superadmin check
+        $superadminPins = User::whereHas('role', function ($q) {
+            $q->where(DB::raw('LOWER(TRIM(akses))'), 'superadmin');
+        })->pluck('id')->map(fn($id) => (string)$id)->toArray();
+
+        // Get source users with templates
+        $sourceUsers = FingerspotDeviceUser::where('cloud_id', $sourceCloudId)
+            ->whereIn('pin', $pins)
+            ->whereNotNull('template')
+            ->where('template', '!=', '')
+            ->get()
+            ->keyBy('pin');
+
+        // Target users map
+        $targetUsers = FingerspotDeviceUser::where('cloud_id', $targetCloudId)
+            ->whereIn('pin', $pins)
+            ->get()
+            ->keyBy('pin');
+
+        $localUsers = User::whereIn('id', $pins)->get()->keyBy('id');
+
+        $successCount = 0;
+        $skippedCount = 0;
+        $failedCount = 0;
+        $logs = [];
+
+        foreach ($pins as $pin) {
+            if (in_array($pin, $superadminPins)) {
+                $skippedCount++;
+                $logs[] = [
+                    'status'  => 'skipped',
+                    'pin'     => $pin,
+                    'name'    => "User #{$pin}",
+                    'message' => "Dilewati: User terdeteksi sebagai Superadmin (keamanan).",
+                ];
+                continue;
+            }
+
+            $sourceUser = $sourceUsers->get($pin);
+            if (!$sourceUser) {
+                $skippedCount++;
+                $logs[] = [
+                    'status'  => 'skipped',
+                    'pin'     => $pin,
+                    'name'    => "User #{$pin}",
+                    'message' => "Dilewati: Template sidik jari tidak ditemukan di database server lokal. Pastikan Mesin Sumber ON dan telah dilakukan Refresh Detail.",
+                ];
+                continue;
+            }
+
+            $targetUser = $targetUsers->get($pin);
+            $localUser = $localUsers->get($pin);
+
+            $cleanName = $targetUser && !empty($targetUser->name)
+                ? $targetUser->name
+                : ($sourceUser->name ?: ($localUser ? $localUser->name : "User #{$pin}"));
+
+            $privilege = $targetUser ? $targetUser->privilege : $sourceUser->privilege;
+            $password = $targetUser ? ($targetUser->password ?? '') : '';
+            $rfid = $targetUser ? ($targetUser->rfid ?? '') : '';
+            $template = $sourceUser->template;
+            $fingerCount = $sourceUser->finger ?: 1;
+
+            try {
+                $res = Fingerspot::setUserInfo(
+                    null,
+                    $targetCloudId,
+                    $pin,
+                    $cleanName,
+                    $privilege,
+                    $password,
+                    $rfid,
+                    $template
+                );
+
+                $isSuccess = isset($res['success']) ? $res['success'] : true;
+
+                if ($isSuccess) {
+                    FingerspotDeviceUser::updateOrCreate(
+                        [
+                            'cloud_id' => $targetCloudId,
+                            'pin'      => (string)$pin,
+                        ],
+                        [
+                            'name'         => $cleanName,
+                            'privilege'    => $privilege,
+                            'finger'       => $fingerCount,
+                            'password'     => $password,
+                            'rfid'         => $rfid,
+                            'template'     => $template,
+                            'last_sync_at' => now(),
+                        ]
+                    );
+
+                    $successCount++;
+                    $logs[] = [
+                        'status'  => 'success',
+                        'pin'     => $pin,
+                        'name'    => $cleanName,
+                        'message' => "Fingerprint berhasil dikirim ke {$targetDevName} (Trans ID: " . ($res['trans_id'] ?? 'OK') . ").",
+                    ];
+                } else {
+                    $failedCount++;
+                    $logs[] = [
+                        'status'  => 'failed',
+                        'pin'     => $pin,
+                        'name'    => $cleanName,
+                        'message' => "Gagal di {$targetDevName}: " . ($res['message'] ?? 'API error'),
+                    ];
+                }
+            } catch (\Throwable $th) {
+                $failedCount++;
+                $logs[] = [
+                    'status'  => 'failed',
+                    'pin'     => $pin,
+                    'name'    => $cleanName,
+                    'message' => "Error: " . $th->getMessage(),
+                ];
+            }
+        }
+
+        return response()->json([
+            'status'        => true,
+            'success'       => true,
+            'processed'     => count($pins),
+            'success_count' => $successCount,
+            'skipped_count' => $skippedCount,
+            'failed_count'  => $failedCount,
+            'logs'          => $logs,
+        ]);
+    }
+
+    /**
+     * Batch trigger get_userinfo to pull biometric templates from machine.
+     */
+    public function batchFetchTemplates(Request $request)
+    {
+        $request->validate([
+            'cloud_id' => 'required|string',
+            'pins'     => 'required|array|min:1',
+            'pins.*'   => 'required|string',
+        ]);
+
+        @set_time_limit(120);
+
+        $cloudId = $request->cloud_id;
+        $pins = array_map('strval', $request->pins);
+
+        $successCount = 0;
+        $failedCount = 0;
+        $logs = [];
+
+        foreach ($pins as $pin) {
+            try {
+                $res = Fingerspot::getUserInfo(null, $cloudId, $pin);
+                if ($res['success'] ?? false) {
+                    $successCount++;
+                    $logs[] = [
+                        'status'  => 'success',
+                        'pin'     => $pin,
+                        'message' => "Perintah get_userinfo untuk PIN {$pin} terkirim (Trans ID: " . ($res['trans_id'] ?? '-') . ")",
+                    ];
+                } else {
+                    $failedCount++;
+                    $logs[] = [
+                        'status'  => 'failed',
+                        'pin'     => $pin,
+                        'message' => "PIN {$pin}: " . ($res['message'] ?? 'Gagal kirim perintah'),
+                    ];
+                }
+            } catch (\Throwable $th) {
+                $failedCount++;
+                $logs[] = [
+                    'status'  => 'failed',
+                    'pin'     => $pin,
+                    'message' => "PIN {$pin}: " . $th->getMessage(),
+                ];
+            }
+        }
+
+        return response()->json([
+            'status'        => true,
+            'success'       => true,
+            'processed'     => count($pins),
+            'success_count' => $successCount,
+            'failed_count'  => $failedCount,
+            'logs'          => $logs,
+            'message'       => "Berhasil mengirim {$successCount} permintaan penarikan template. Hasil akan diperbarui via callback webhook mesin.",
         ]);
     }
 

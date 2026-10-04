@@ -787,10 +787,13 @@ $(document).ready(function() {
     function updateBulkDeviceUserBtn() {
         var count = $('.device-user-row-checkbox:checked').length;
         $('#bulk-device-user-count').text(count);
+        $('#bulk-copy-fp-count').text(count);
         if (count > 0) {
             $('#btn-bulk-delete-device-users').removeClass('d-none');
+            $('#btn-bulk-copy-fingerprint-selected').removeClass('d-none');
         } else {
             $('#btn-bulk-delete-device-users').addClass('d-none');
+            $('#btn-bulk-copy-fingerprint-selected').addClass('d-none');
         }
     }
 
@@ -977,18 +980,111 @@ $(document).ready(function() {
         });
     });
 
-    // Copy User Modal Open
+    // Copy User / Fingerprint Modal Open
     $(document).on('click', '.btn-copy-user', function() {
         var cloudId = $(this).data('cloud-id');
         var pin = $(this).data('pin');
         var name = $(this).data('name') || `User #${pin}`;
+        var finger = parseInt($(this).data('finger')) || 0;
+        var hasTemplate = $(this).data('has-template') == '1';
 
         $('#copy-source-cloud-id').val(cloudId);
         $('#copy-source-cloud-id-text').text(cloudId);
         $('#copy-pin').val(pin);
         $('#copy-user-pin').text(pin);
         $('#copy-user-name').text(name);
+
+        // Filter target select so source device cannot be chosen as target
+        $('#copy-target-cloud-id option').each(function() {
+            var cid = $(this).val();
+            if (cid === cloudId) {
+                $(this).prop('disabled', true);
+            } else {
+                $(this).prop('disabled', false);
+            }
+        });
+        // Select first enabled option
+        var firstValid = $('#copy-target-cloud-id option:not(:disabled)').first().val();
+        if (firstValid) {
+            $('#copy-target-cloud-id').val(firstValid);
+        }
+
+        // Render Biometrics status alert
+        var bioHtml = '';
+        if (hasTemplate) {
+            bioHtml = `
+                <div class="alert alert-success py-2 mb-0 small d-flex align-items-center">
+                    <i class="ti ti-check fs-5 me-2 text-success"></i>
+                    <div>
+                        <strong>Template Siap:</strong> User memiliki <strong>${finger}</strong> sidik jari dan templatenya sudah tersimpan di database server. Siap disalin langsung ke mesin tujuan.
+                    </div>
+                </div>`;
+            $('#copy-mode-fp').prop('checked', true);
+            updateCopyModeUI('fingerprint_only');
+        } else if (finger > 0) {
+            bioHtml = `
+                <div class="alert alert-warning py-2 mb-0 small d-flex align-items-center">
+                    <i class="ti ti-alert-triangle fs-5 me-2 text-warning"></i>
+                    <div>
+                        <strong>Template Belum Tersimpan:</strong> Mesin sumber mendeteksi <strong>${finger}</strong> sidik jari, tetapi belum ditarik ke server lokal. Pastikan mesin sumber ON dan klik tombol <strong>Refresh Detail</strong> (ikon biru) terlebih dahulu agar template tersimpan sebelum disalin.
+                    </div>
+                </div>`;
+            $('#copy-mode-fp').prop('checked', true);
+            updateCopyModeUI('fingerprint_only');
+        } else {
+            bioHtml = `
+                <div class="alert alert-secondary py-2 mb-0 small d-flex align-items-center">
+                    <i class="ti ti-info-circle fs-5 me-2 text-secondary"></i>
+                    <div>
+                        User ini belum memiliki data sidik jari di mesin sumber. Jika Anda ingin menyalin akunnya saja, gunakan mode "Salin Lengkap".
+                    </div>
+                </div>`;
+            $('#copy-mode-full').prop('checked', true);
+            updateCopyModeUI('full');
+        }
+        $('#copy-user-bio-alert').html(bioHtml);
+
         $('#modal-copy-user').modal('show');
+    });
+
+    function updateCopyModeUI(mode) {
+        if (mode === 'fingerprint_only') {
+            $('#card-copy-mode-fp').css({
+                'border-color': '#7367f0 !important',
+                'background-color': 'rgba(115, 103, 240, 0.04)'
+            });
+            $('#card-copy-mode-full').css({
+                'border-color': '#dbdade !important',
+                'background-color': '#fff'
+            });
+        } else {
+            $('#card-copy-mode-full').css({
+                'border-color': '#7367f0 !important',
+                'background-color': 'rgba(115, 103, 240, 0.04)'
+            });
+            $('#card-copy-mode-fp').css({
+                'border-color': '#dbdade !important',
+                'background-color': '#fff'
+            });
+        }
+    }
+
+    $('input[name="copy_mode"]').on('change', function() {
+        updateCopyModeUI($(this).val());
+    });
+
+    $('#card-copy-mode-fp').on('click', function(e) {
+        if (!$(e.target).is('input')) {
+            $('#copy-mode-fp').prop('checked', true);
+            updateCopyModeUI('fingerprint_only');
+        }
+    });
+
+    $('#card-copy-mode-full').on('click', function(e) {
+        if (!$(e.target).is('input')) {
+            $('#copy-mode-full').prop('checked', true);
+            updateCopyModeUI('full');
+        }
     });
 
     $('#form-copy-user').on('submit', function(e) {
@@ -1002,11 +1098,11 @@ $(document).ready(function() {
             type: "POST",
             data: form.serialize(),
             success: function(res) {
-                submitBtn.prop('disabled', false).html('<i class="ti ti-send me-1"></i> Proses Duplikasi');
+                submitBtn.prop('disabled', false).html('<i class="ti ti-send me-1"></i> Mulai Salin ke Mesin Tujuan');
                 $('#modal-copy-user').modal('hide');
                 Swal.fire({
                     icon: 'success',
-                    title: 'Duplikasi Terkirim!',
+                    title: 'Perintah Salin Terkirim!',
                     text: res.message,
                     customClass: { confirmButton: 'btn btn-primary' },
                     buttonsStyling: false
@@ -1015,8 +1111,12 @@ $(document).ready(function() {
                 tableCommands.ajax.reload(null, false);
             },
             error: function(err) {
-                submitBtn.prop('disabled', false).html('<i class="ti ti-send me-1"></i> Proses Duplikasi');
-                Swal.fire({ icon: 'error', title: 'Gagal Duplikasi', text: err.responseJSON ? err.responseJSON.message : 'Kesalahan server.' });
+                submitBtn.prop('disabled', false).html('<i class="ti ti-send me-1"></i> Mulai Salin ke Mesin Tujuan');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Salin',
+                    text: err.responseJSON ? err.responseJSON.message : 'Kesalahan server.'
+                });
             }
         });
     });
@@ -1655,6 +1755,547 @@ $(document).ready(function() {
                        <div class="col-4"><span class="badge bg-success w-100 py-2">Berhasil: ${batchState.success}</span></div>
                        <div class="col-4"><span class="badge bg-info w-100 py-2">Dilewati: ${batchState.skipped}</span></div>
                        <div class="col-4"><span class="badge bg-danger w-100 py-2">Gagal: ${batchState.failed}</span></div>
+                   </div>`,
+            customClass: { confirmButton: 'btn btn-primary' },
+            buttonsStyling: false
+        });
+    });
+
+    // ----------------------------------------------------
+    // BATCH COPY FINGERPRINT ANTAR MESIN
+    // ----------------------------------------------------
+    var batchFpState = {
+        sourceCloudId: null,
+        targetCloudId: null,
+        pins: [],
+        missingPins: [],
+        currentIndex: 0,
+        chunkSize: 5,
+        total: 0,
+        processed: 0,
+        success: 0,
+        skipped: 0,
+        failed: 0,
+        isPaused: false,
+        isProcessing: false,
+        candidatesData: []
+    };
+
+    function resetBatchFpModal() {
+        batchFpState.pins = [];
+        batchFpState.missingPins = [];
+        batchFpState.currentIndex = 0;
+        batchFpState.total = 0;
+        batchFpState.processed = 0;
+        batchFpState.success = 0;
+        batchFpState.skipped = 0;
+        batchFpState.failed = 0;
+        batchFpState.isPaused = false;
+        batchFpState.isProcessing = false;
+        batchFpState.candidatesData = [];
+
+        $('#batch-fp-step-1').removeClass('d-none');
+        $('#batch-fp-step-2').addClass('d-none');
+        $('#batch-fp-step-3').addClass('d-none');
+
+        $('#btn-batch-fp-cancel').removeClass('d-none').prop('disabled', false);
+        $('#btn-batch-fp-back-to-step-1').addClass('d-none').prop('disabled', false);
+        $('#btn-batch-fp-pause').addClass('d-none');
+        $('#btn-precheck-batch-fp').removeClass('d-none').prop('disabled', false).html('<i class="ti ti-search me-1"></i> Analisa & Cek Sidik Jari');
+        $('#btn-start-batch-copy-fp').addClass('d-none').prop('disabled', false).html('<i class="ti ti-circle-check me-1 fs-5"></i> ACC & Mulai Salin Sidik Jari (<span id="btn-batch-fp-count-selected">0</span>)');
+        $('#btn-finish-batch-fp').addClass('d-none');
+        $('#btn-close-batch-fp-modal').prop('disabled', false);
+
+        $('#batch-fp-live-log').html('<div class="text-muted">[Sistem] Menunggu antrean salin fingerprint...</div>');
+        $('#batch-fp-progress-bar').css('width', '0%').attr('aria-valuenow', 0);
+        $('#batch-fp-progress-percent').text('0%');
+        $('#batch-fp-progress-text').text('Memproses: 0 / 0 Pengguna');
+        $('#batch-fp-count-success').text('0');
+        $('#batch-fp-count-skipped').text('0');
+        $('#batch-fp-count-failed').text('0');
+        $('#batch-fp-missing-banner').addClass('d-none');
+
+        syncFpTargetSelect();
+    }
+
+    function syncFpTargetSelect() {
+        var sourceVal = $('#batch-fp-source-cloud-id').val();
+        $('#batch-fp-target-cloud-id option').each(function() {
+            var cid = $(this).val();
+            if (cid === sourceVal) {
+                $(this).prop('disabled', true);
+            } else {
+                $(this).prop('disabled', false);
+            }
+        });
+
+        if ($('#batch-fp-target-cloud-id').val() === sourceVal) {
+            var firstValid = $('#batch-fp-target-cloud-id option:not(:disabled)').first().val();
+            if (firstValid) {
+                $('#batch-fp-target-cloud-id').val(firstValid);
+            }
+        }
+    }
+
+    $('#batch-fp-source-cloud-id').on('change', function() {
+        syncFpTargetSelect();
+    });
+
+    function updateFpScopeUI(scope) {
+        if (scope === 'all') {
+            $('#card-batch-fp-scope-all').css({
+                'border-color': '#7367f0 !important',
+                'background-color': 'rgba(115, 103, 240, 0.04)'
+            });
+            $('#card-batch-fp-scope-selected').css({
+                'border-color': '#dbdade !important',
+                'background-color': '#fff'
+            });
+        } else {
+            $('#card-batch-fp-scope-selected').css({
+                'border-color': '#7367f0 !important',
+                'background-color': 'rgba(115, 103, 240, 0.04)'
+            });
+            $('#card-batch-fp-scope-all').css({
+                'border-color': '#dbdade !important',
+                'background-color': '#fff'
+            });
+        }
+    }
+
+    $('input[name="batch_fp_scope"]').on('change', function() {
+        updateFpScopeUI($(this).val());
+    });
+
+    $('#card-batch-fp-scope-all').on('click', function(e) {
+        if (!$(e.target).is('input')) {
+            $('#batch-fp-scope-all').prop('checked', true);
+            updateFpScopeUI('all');
+        }
+    });
+
+    $('#card-batch-fp-scope-selected').on('click', function(e) {
+        if (!$(e.target).is('input')) {
+            $('#batch-fp-scope-selected').prop('checked', true);
+            updateFpScopeUI('selected');
+        }
+    });
+
+    // Open batch copy FP modal from header button
+    $('#btn-batch-copy-fingerprint').on('click', function() {
+        resetBatchFpModal();
+        var currentFilter = $('#filter-user-cloud-id').val();
+        if (currentFilter) {
+            $('#batch-fp-source-cloud-id').val(currentFilter);
+            syncFpTargetSelect();
+        }
+
+        var checkedCount = $('.device-user-row-checkbox:checked').length;
+        $('#batch-fp-selected-count-badge').text(checkedCount);
+        if (checkedCount > 0) {
+            $('#batch-fp-scope-selected').prop('checked', true);
+            updateFpScopeUI('selected');
+        } else {
+            $('#batch-fp-scope-all').prop('checked', true);
+            updateFpScopeUI('all');
+        }
+
+        $('#modal-batch-copy-fingerprint').modal('show');
+    });
+
+    // Open from toolbar bulk selected button
+    $('#btn-bulk-copy-fingerprint-selected').on('click', function() {
+        resetBatchFpModal();
+        var checkedBoxes = $('.device-user-row-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'Pilih Pengguna', text: 'Pilih minimal satu pengguna dari tabel terlebih dahulu.' });
+            return;
+        }
+
+        var firstCloud = checkedBoxes.first().data('cloud-id');
+        if (firstCloud) {
+            $('#batch-fp-source-cloud-id').val(firstCloud);
+            syncFpTargetSelect();
+        }
+
+        $('#batch-fp-selected-count-badge').text(checkedBoxes.length);
+        $('#batch-fp-scope-selected').prop('checked', true);
+        updateFpScopeUI('selected');
+
+        $('#modal-batch-copy-fingerprint').modal('show');
+        $('#btn-precheck-batch-fp').trigger('click');
+    });
+
+    // Precheck (Step 1 -> Step 2)
+    $('#btn-precheck-batch-fp').on('click', function() {
+        var sourceCloudId = $('#batch-fp-source-cloud-id').val();
+        var targetCloudId = $('#batch-fp-target-cloud-id').val();
+        var scope = $('input[name="batch_fp_scope"]:checked').val();
+
+        if (sourceCloudId === targetCloudId) {
+            Swal.fire({ icon: 'warning', title: 'Mesin Sama', text: 'Mesin sumber dan mesin tujuan tidak boleh sama!' });
+            return;
+        }
+
+        var pins = [];
+        if (scope === 'selected') {
+            $('.device-user-row-checkbox:checked').each(function() {
+                var p = $(this).data('pin');
+                if (p) pins.push(String(p));
+            });
+
+            if (pins.length === 0) {
+                Swal.fire({ icon: 'warning', title: 'Belum Ada User Terpilih', text: 'Silakan centang user pada tabel terlebih dahulu atau pilih opsi "Semua Pengguna".' });
+                return;
+            }
+        }
+
+        var btn = $(this);
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Menganalisa...');
+
+        $.ajax({
+            url: "{{ route('admin.fingerspot.users.batch_copy_fingerprint_precheck') }}",
+            type: "POST",
+            data: {
+                source_cloud_id: sourceCloudId,
+                target_cloud_id: targetCloudId,
+                pins: pins,
+                _token: csrfToken
+            },
+            success: function(res) {
+                btn.prop('disabled', false).html('<i class="ti ti-search me-1"></i> Analisa & Cek Sidik Jari');
+
+                if (!res.status) {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: res.message || 'Analisa gagal.' });
+                    return;
+                }
+
+                batchFpState.sourceCloudId = sourceCloudId;
+                batchFpState.targetCloudId = targetCloudId;
+                batchFpState.candidatesData = res.users || [];
+                batchFpState.missingPins = res.missing_template_pins || [];
+
+                $('#batch-fp-total-candidates').text(res.total_source_candidates || 0);
+                $('#batch-fp-total-ready').text(res.total_ready || 0);
+                $('#batch-fp-total-missing').text(res.total_missing_template || 0);
+                $('#batch-fp-total-skipped-sa').text(res.total_skipped_superadmin || 0);
+
+                if (res.total_missing_template > 0) {
+                    $('#batch-fp-missing-banner').removeClass('d-none').addClass('d-flex');
+                    $('#batch-fp-missing-count-text').text(res.total_missing_template);
+                } else {
+                    $('#batch-fp-missing-banner').addClass('d-none').removeClass('d-flex');
+                }
+
+                renderBatchFpPreviewTable();
+
+                $('#batch-fp-step-1').addClass('d-none');
+                $('#batch-fp-step-2').removeClass('d-none');
+
+                $('#btn-batch-fp-back-to-step-1').removeClass('d-none');
+                btn.addClass('d-none');
+                $('#btn-start-batch-copy-fp').removeClass('d-none');
+            },
+            error: function(err) {
+                btn.prop('disabled', false).html('<i class="ti ti-search me-1"></i> Analisa & Cek Sidik Jari');
+                Swal.fire({ icon: 'error', title: 'Gagal Menganalisa', text: err.responseJSON ? err.responseJSON.message : 'Kesalahan server.' });
+            }
+        });
+    });
+
+    function renderBatchFpPreviewTable() {
+        var tbody = $('#batch-fp-preview-tbody');
+        tbody.empty();
+
+        var filterReadyOnly = $('#batch-fp-filter-ready-only').is(':checked');
+        var candidates = batchFpState.candidatesData;
+
+        if (candidates.length === 0) {
+            tbody.html('<tr><td colspan="6" class="text-center py-4 text-muted"><i class="ti ti-info-circle me-1"></i> Tidak ada pengguna dengan sidik jari di mesin sumber ini. Pastikan mesin sumber telah online dan sinkronkan data pengguna.</td></tr>');
+            updateSelectedFpCount();
+            return;
+        }
+
+        var visibleCount = 0;
+        $.each(candidates, function(idx, u) {
+            if (filterReadyOnly && u.status_type !== 'ready') {
+                return;
+            }
+            visibleCount++;
+
+            var isChecked = (u.status_type === 'ready') ? 'checked' : '';
+            var isDisabled = (u.status_type !== 'ready') ? 'disabled' : '';
+
+            var rowHtml = `
+                <tr class="${u.status_type !== 'ready' ? 'table-light opacity-75' : ''}">
+                    <td class="text-center">
+                        <input type="checkbox" class="form-check-input batch-fp-candidate-checkbox" data-pin="${u.pin}" ${isChecked} ${isDisabled}>
+                    </td>
+                    <td><span class="badge bg-label-dark font-monospace">${u.pin}</span></td>
+                    <td><strong>${u.name}</strong></td>
+                    <td class="text-center">
+                        <span class="badge bg-label-info"><i class="ti ti-fingerprint ti-xs me-1"></i>${u.finger}</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-label-${u.status_badge}">${u.status_label}</span>
+                    </td>
+                    <td>
+                        <small class="text-muted">${u.status_detail}</small>
+                    </td>
+                </tr>`;
+            tbody.append(rowHtml);
+        });
+
+        if (visibleCount === 0) {
+            tbody.html('<tr><td colspan="6" class="text-center py-3 text-muted">Tidak ada pengguna yang memenuhi filter status siap. Matikan filter "Hanya yang Siap" untuk melihat seluruh user.</td></tr>');
+        }
+
+        updateSelectedFpCount();
+    }
+
+    function updateSelectedFpCount() {
+        var selectedCount = $('.batch-fp-candidate-checkbox:checked').length;
+        $('#btn-batch-fp-count-selected').text(selectedCount);
+        var totalCheckboxes = $('.batch-fp-candidate-checkbox:not(:disabled)').length;
+        $('#check-all-batch-fp').prop('checked', totalCheckboxes > 0 && selectedCount === totalCheckboxes);
+
+        if (selectedCount > 0) {
+            $('#btn-start-batch-copy-fp').prop('disabled', false);
+        } else {
+            $('#btn-start-batch-copy-fp').prop('disabled', true);
+        }
+    }
+
+    $(document).on('change', '.batch-fp-candidate-checkbox', function() {
+        updateSelectedFpCount();
+    });
+
+    $('#check-all-batch-fp').on('change', function() {
+        var isChecked = $(this).is(':checked');
+        $('.batch-fp-candidate-checkbox:not(:disabled)').prop('checked', isChecked);
+        updateSelectedFpCount();
+    });
+
+    $('#batch-fp-filter-ready-only').on('change', function() {
+        renderBatchFpPreviewTable();
+    });
+
+    // Step 2 -> Step 1 (Back)
+    $('#btn-batch-fp-back-to-step-1').on('click', function() {
+        $('#batch-fp-step-2').addClass('d-none');
+        $('#batch-fp-step-1').removeClass('d-none');
+        $(this).addClass('d-none');
+        $('#btn-start-batch-copy-fp').addClass('d-none');
+        $('#btn-precheck-batch-fp').removeClass('d-none');
+    });
+
+    // Tarik template dari mesin sekarang
+    $('#btn-batch-fetch-templates-now').on('click', function() {
+        var btn = $(this);
+        if (batchFpState.missingPins.length === 0) return;
+
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Mengirim Permintaan...');
+
+        $.ajax({
+            url: "{{ route('admin.fingerspot.users.batch_fetch_templates') }}",
+            type: "POST",
+            data: {
+                cloud_id: batchFpState.sourceCloudId,
+                pins: batchFpState.missingPins,
+                _token: csrfToken
+            },
+            success: function(res) {
+                btn.prop('disabled', false).html('<i class="ti ti-check me-1"></i> Permintaan Terkirim');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Permintaan get_userinfo Dikirim!',
+                    html: `<p>${res.message}</p><p class="small text-muted mb-0">Pastikan mesin sumber (${batchFpState.sourceCloudId}) dalam kondisi MENYALA dan terhubung ke cloud server agar data sidik jari dapat terkirim otomatis.</p>`,
+                    customClass: { confirmButton: 'btn btn-primary' },
+                    buttonsStyling: false
+                });
+                tableCommands.ajax.reload(null, false);
+            },
+            error: function(err) {
+                btn.prop('disabled', false).html('<i class="ti ti-download me-1"></i> Tarik Template dari Mesin Sekarang');
+                Swal.fire({ icon: 'error', title: 'Gagal', text: err.responseJSON ? err.responseJSON.message : 'Gagal mengirim permintaan.' });
+            }
+        });
+    });
+
+    // STEP 2 -> STEP 3: Start Execution
+    $('#btn-start-batch-copy-fp').on('click', function() {
+        var selectedPins = [];
+        $('.batch-fp-candidate-checkbox:checked').each(function() {
+            var pin = $(this).data('pin');
+            if (pin) selectedPins.push(String(pin));
+        });
+
+        if (selectedPins.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'Pilih Pengguna', text: 'Centang minimal satu pengguna yang siap disalin.' });
+            return;
+        }
+
+        batchFpState.pins = selectedPins;
+        batchFpState.total = selectedPins.length;
+        batchFpState.currentIndex = 0;
+        batchFpState.processed = 0;
+        batchFpState.success = 0;
+        batchFpState.skipped = 0;
+        batchFpState.failed = 0;
+        batchFpState.isPaused = false;
+        batchFpState.isProcessing = true;
+
+        $('#batch-fp-step-2').addClass('d-none');
+        $('#batch-fp-step-3').removeClass('d-none');
+
+        $('#btn-batch-fp-cancel').addClass('d-none');
+        $('#btn-batch-fp-back-to-step-1').addClass('d-none');
+        $(this).addClass('d-none');
+        $('#btn-batch-fp-pause').removeClass('d-none');
+        $('#btn-close-batch-fp-modal').prop('disabled', true);
+
+        $('#batch-fp-live-spinner').show();
+        $('#batch-fp-status-title').text('Sedang Menyalin Fingerprint ke Mesin Tujuan...');
+        $('#batch-fp-status-subtitle').text('Mohon jangan menutup jendela browser ini hingga seluruh batch selesai.');
+        $('#batch-fp-live-log').empty();
+
+        appendBatchFpLog('info', `[Mulai] Menjalankan salin fingerprint untuk ${batchFpState.total} pengguna dari Mesin (${batchFpState.sourceCloudId}) ke Mesin (${batchFpState.targetCloudId})...`);
+
+        updateBatchFpProgressUI();
+        executeNextBatchFpChunk();
+    });
+
+    function appendBatchFpLog(type, message) {
+        var logBox = $('#batch-fp-live-log');
+        var now = new Date().toLocaleTimeString('id-ID');
+        var badge = '';
+
+        if (type === 'success') {
+            badge = '<span class="text-success">[SUKSES]</span>';
+        } else if (type === 'skipped') {
+            badge = '<span class="text-info">[LEWATI]</span>';
+        } else if (type === 'failed') {
+            badge = '<span class="text-danger">[GAGAL]</span>';
+        } else {
+            badge = '<span class="text-warning">[INFO]</span>';
+        }
+
+        logBox.append(`<div><span class="text-muted">[${now}]</span> ${badge} ${message}</div>`);
+        logBox.scrollTop(logBox[0].scrollHeight);
+    }
+
+    function updateBatchFpProgressUI() {
+        var percent = batchFpState.total > 0 ? Math.round((batchFpState.processed / batchFpState.total) * 100) : 0;
+        if (percent > 100) percent = 100;
+
+        $('#batch-fp-progress-bar').css('width', percent + '%').attr('aria-valuenow', percent);
+        $('#batch-fp-progress-percent').text(percent + '%');
+        $('#batch-fp-progress-text').text(`Memproses: ${batchFpState.processed} / ${batchFpState.total} Pengguna`);
+
+        $('#batch-fp-count-success').text(batchFpState.success);
+        $('#batch-fp-count-skipped').text(batchFpState.skipped);
+        $('#batch-fp-count-failed').text(batchFpState.failed);
+    }
+
+    function executeNextBatchFpChunk() {
+        if (batchFpState.isPaused) {
+            appendBatchFpLog('info', 'Proses dijeda.');
+            return;
+        }
+
+        if (batchFpState.currentIndex >= batchFpState.pins.length) {
+            finishBatchFpCopy();
+            return;
+        }
+
+        var chunk = batchFpState.pins.slice(batchFpState.currentIndex, batchFpState.currentIndex + batchFpState.chunkSize);
+
+        $.ajax({
+            url: "{{ route('admin.fingerspot.users.batch_copy_fingerprint_process') }}",
+            type: "POST",
+            data: {
+                source_cloud_id: batchFpState.sourceCloudId,
+                target_cloud_id: batchFpState.targetCloudId,
+                pins: chunk,
+                _token: csrfToken
+            },
+            timeout: 60000,
+            success: function(res) {
+                if (res.logs && res.logs.length > 0) {
+                    $.each(res.logs, function(i, item) {
+                        appendBatchFpLog(item.status, `${item.name} (PIN ${item.pin}): ${item.message}`);
+                    });
+                }
+
+                batchFpState.success += (res.success_count || 0);
+                batchFpState.skipped += (res.skipped_count || 0);
+                batchFpState.failed += (res.failed_count || 0);
+                batchFpState.processed += chunk.length;
+                batchFpState.currentIndex += chunk.length;
+
+                updateBatchFpProgressUI();
+
+                if (!batchFpState.isPaused) {
+                    setTimeout(executeNextBatchFpChunk, 200);
+                }
+            },
+            error: function(xhr, status, error) {
+                appendBatchFpLog('failed', `Batch PIN [${chunk.join(', ')}] error: ${error || 'Network error'}. Melanjutkan chunk berikutnya...`);
+                batchFpState.failed += chunk.length;
+                batchFpState.processed += chunk.length;
+                batchFpState.currentIndex += chunk.length;
+
+                updateBatchFpProgressUI();
+
+                if (!batchFpState.isPaused) {
+                    setTimeout(executeNextBatchFpChunk, 500);
+                }
+            }
+        });
+    }
+
+    $('#btn-batch-fp-pause').on('click', function() {
+        if (!batchFpState.isPaused) {
+            batchFpState.isPaused = true;
+            $(this).removeClass('btn-outline-danger').addClass('btn-outline-success')
+                   .html('<i class="ti ti-player-play me-1"></i> Lanjutkan Proses');
+            $('#batch-fp-status-title').text('Proses Dijeda');
+            $('#batch-fp-live-spinner').hide();
+        } else {
+            batchFpState.isPaused = false;
+            $(this).removeClass('btn-outline-success').addClass('btn-outline-danger')
+                   .html('<i class="ti ti-player-pause me-1"></i> Hentikan');
+            $('#batch-fp-status-title').text('Sedang Menyalin Fingerprint ke Mesin Tujuan...');
+            $('#batch-fp-live-spinner').show();
+            executeNextBatchFpChunk();
+        }
+    });
+
+    function finishBatchFpCopy() {
+        batchFpState.isProcessing = false;
+        $('#batch-fp-live-spinner').hide();
+        $('#batch-fp-status-title').html('<i class="ti ti-circle-check text-success me-1"></i> Salin Fingerprint Selesai!');
+        $('#batch-fp-status-subtitle').text('Seluruh data sidik jari telah dikirimkan ke mesin tujuan.');
+        $('#btn-batch-fp-pause').addClass('d-none');
+        $('#btn-finish-batch-fp').removeClass('d-none');
+        $('#btn-close-batch-fp-modal').prop('disabled', false);
+
+        appendBatchFpLog('success', `[SELESAI] Total Berhasil: ${batchFpState.success}, Dilewati: ${batchFpState.skipped}, Gagal: ${batchFpState.failed}.`);
+
+        tableDeviceUsers.ajax.reload(null, false);
+        tableCommands.ajax.reload(null, false);
+    }
+
+    $('#btn-finish-batch-fp').on('click', function() {
+        $('#modal-batch-copy-fingerprint').modal('hide');
+        Swal.fire({
+            icon: 'success',
+            title: 'Salin Fingerprint Tuntas!',
+            html: `<p>Data sidik jari civitas telah terkirim ke mesin tujuan.</p>
+                   <div class="row text-center g-2 mt-2">
+                       <div class="col-4"><span class="badge bg-success w-100 py-2">Berhasil: ${batchFpState.success}</span></div>
+                       <div class="col-4"><span class="badge bg-info w-100 py-2">Dilewati: ${batchFpState.skipped}</span></div>
+                       <div class="col-4"><span class="badge bg-danger w-100 py-2">Gagal: ${batchFpState.failed}</span></div>
                    </div>`,
             customClass: { confirmButton: 'btn btn-primary' },
             buttonsStyling: false
