@@ -669,8 +669,8 @@
                         <i class="ti ti-fingerprint fs-3 text-info"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title fw-bold text-dark mb-0">Salin Fingerprint Antar Mesin (Batch)</h5>
-                        <small class="text-muted">Duplikasi data biometrik/sidik jari dari satu mesin ke mesin lain</small>
+                        <h5 class="modal-title fw-bold text-dark mb-0">Salin User & Fingerprint Antar Mesin (Batch)</h5>
+                        <small class="text-muted">Duplikasi data biometrik/sidik jari dan akun pengguna dari satu mesin ke mesin lain</small>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="btn-close-batch-fp-modal"></button>
@@ -683,8 +683,8 @@
                         <i class="ti ti-info-circle fs-4"></i>
                     </div>
                     <div class="small text-dark flex-grow-1">
-                        <div class="fw-bold mb-1 text-info">Panduan Salin Fingerprint</div>
-                        Fitur ini akan mengambil data biometrik sidik jari yang ada di <strong>Mesin Sumber</strong> lalu mengirimkannya ke <strong>Mesin Tujuan</strong>. Akun dengan role <strong>Superadmin otomatis dikecualikan</strong> demi keamanan.
+                        <div class="fw-bold mb-1 text-info">Panduan Salin Data Antar Mesin</div>
+                        Fitur ini dapat menyalin <strong>sidik jari saja</strong> (jika akun sudah ada di kedua mesin) atau menyalin <strong>lengkap akun & sidik jari</strong> dari <strong>Mesin Sumber</strong> ke <strong>Mesin Tujuan</strong>. Akun dengan role <strong>Superadmin otomatis dikecualikan</strong> demi keamanan.
                     </div>
                 </div>
 
@@ -692,48 +692,81 @@
                     <!-- Mesin Sumber -->
                     <div class="col-md-6">
                         <label class="form-label fw-bold text-dark mb-1">
-                            <i class="ti ti-login me-1 text-primary"></i> 1. Mesin Sumber (Asal Sidik Jari) <span class="text-danger">*</span>
+                            <i class="ti ti-login me-1 text-primary"></i> 1. Mesin Sumber (Asal Data) <span class="text-danger">*</span>
                         </label>
                         <select class="form-select" id="batch-fp-source-cloud-id">
                             @foreach ($devices as $dev)
                                 <option value="{{ $dev->cloud_id }}">{{ $dev->name }} ({{ $dev->cloud_id }})</option>
                             @endforeach
                         </select>
-                        <small class="text-muted">Mesin tempat user telah merekam sidik jari.</small>
+                        <small class="text-muted">Mesin tempat data akun & sidik jari berada.</small>
                     </div>
 
                     <!-- Mesin Tujuan -->
                     <div class="col-md-6">
                         <label class="form-label fw-bold text-dark mb-1">
-                            <i class="ti ti-logout me-1 text-success"></i> 2. Mesin Tujuan (Penerima Sidik Jari) <span class="text-danger">*</span>
+                            <i class="ti ti-logout me-1 text-success"></i> 2. Mesin Tujuan (Penerima Data) <span class="text-danger">*</span>
                         </label>
                         <select class="form-select" id="batch-fp-target-cloud-id">
                             @foreach ($devices as $dev)
                                 <option value="{{ $dev->cloud_id }}" {{ $loop->iteration == 2 ? 'selected' : '' }}>{{ $dev->name }} ({{ $dev->cloud_id }})</option>
                             @endforeach
                         </select>
-                        <small class="text-muted">Mesin yang akan menerima salinan sidik jari.</small>
+                        <small class="text-muted">Mesin yang akan menerima salinan data.</small>
+                    </div>
+
+                    <!-- Pilihan Mode Salin Batch -->
+                    <div class="col-12 mt-3">
+                        <label class="form-label fw-bold text-dark mb-2">3. Pilihan Mode Salin Massal <span class="text-danger">*</span></label>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="card border border-2 shadow-none cursor-pointer p-3 mb-0 h-100" id="card-batch-copy-mode-fp" style="border-radius: 10px; cursor: pointer; border-color: #7367f0 !important; background-color: rgba(115, 103, 240, 0.04);">
+                                    <div class="form-check mb-1">
+                                        <input class="form-check-input" type="radio" name="batch_copy_mode" id="batch-copy-mode-fp" value="fingerprint_only" checked>
+                                        <label class="form-check-label fw-bold text-dark" for="batch-copy-mode-fp">
+                                            <i class="ti ti-fingerprint me-1 text-primary"></i> Hanya Salin Fingerprint Saja
+                                        </label>
+                                    </div>
+                                    <small class="text-muted ps-4 d-block">
+                                        Akun user sudah ada di target. Hanya menyalin template sidik jari tanpa mengubah profil akun di target.
+                                    </small>
+                                </label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="card border border-2 shadow-none cursor-pointer p-3 mb-0 h-100" id="card-batch-copy-mode-full" style="border-radius: 10px; cursor: pointer; border-color: #dbdade !important; background-color: #fff;">
+                                    <div class="form-check mb-1">
+                                        <input class="form-check-input" type="radio" name="batch_copy_mode" id="batch-copy-mode-full" value="full">
+                                        <label class="form-check-label fw-bold text-dark" for="batch-copy-mode-full">
+                                            <i class="ti ti-users-plus me-1 text-success"></i> Salin Lengkap: User & Fingerprint
+                                        </label>
+                                    </div>
+                                    <small class="text-muted ps-4 d-block">
+                                        Menyalin seluruh identitas akun (PIN, Nama, Hak Akses, Password, RFID) beserta sidik jari ke mesin target.
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Filter Cakupan Pengguna -->
                     <div class="col-12 mt-3">
-                        <label class="form-label fw-bold text-dark mb-2">3. Cakupan Pengguna yang Diproses</label>
+                        <label class="form-label fw-bold text-dark mb-2">4. Cakupan Pengguna yang Diproses</label>
                         <div class="row g-2">
                             <div class="col-md-6">
-                                <label class="card border border-2 shadow-none cursor-pointer p-3 mb-0" id="card-batch-fp-scope-all" style="border-radius: 10px; cursor: pointer; border-color: #7367f0 !important; background-color: rgba(115, 103, 240, 0.04);">
+                                <label class="card border border-2 shadow-none cursor-pointer p-3 mb-0 h-100" id="card-batch-fp-scope-all" style="border-radius: 10px; cursor: pointer; border-color: #7367f0 !important; background-color: rgba(115, 103, 240, 0.04);">
                                     <div class="form-check mb-1">
                                         <input class="form-check-input" type="radio" name="batch_fp_scope" id="batch-fp-scope-all" value="all" checked>
-                                        <label class="form-check-label fw-bold text-dark" for="batch-fp-scope-all">
-                                            <i class="ti ti-users me-1 text-primary"></i> Semua Pengguna Pemilik Sidik Jari
+                                        <label class="form-check-label fw-bold text-dark" for="batch-fp-scope-all" id="label-batch-fp-scope-all">
+                                            <i class="ti ti-users me-1 text-primary"></i> Semua Pengguna di Mesin Sumber
                                         </label>
                                     </div>
-                                    <small class="text-muted ps-4 d-block">
+                                    <small class="text-muted ps-4 d-block" id="desc-batch-fp-scope-all">
                                         Analisis seluruh user di mesin sumber yang memiliki sidik jari.
                                     </small>
                                 </label>
                             </div>
                             <div class="col-md-6">
-                                <label class="card border border-2 shadow-none cursor-pointer p-3 mb-0" id="card-batch-fp-scope-selected" style="border-radius: 10px; cursor: pointer; border-color: #dbdade !important; background-color: #fff;">
+                                <label class="card border border-2 shadow-none cursor-pointer p-3 mb-0 h-100" id="card-batch-fp-scope-selected" style="border-radius: 10px; cursor: pointer; border-color: #dbdade !important; background-color: #fff;">
                                     <div class="form-check mb-1">
                                         <input class="form-check-input" type="radio" name="batch_fp_scope" id="batch-fp-scope-selected" value="selected">
                                         <label class="form-check-label fw-bold text-dark" for="batch-fp-scope-selected">

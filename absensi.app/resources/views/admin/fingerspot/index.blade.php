@@ -1767,6 +1767,7 @@ $(document).ready(function() {
     var batchFpState = {
         sourceCloudId: null,
         targetCloudId: null,
+        copyMode: 'fingerprint_only', // 'fingerprint_only' or 'full'
         pins: [],
         missingPins: [],
         currentIndex: 0,
@@ -1781,6 +1782,51 @@ $(document).ready(function() {
         candidatesData: []
     };
 
+    function updateBatchCopyModeUI(mode) {
+        batchFpState.copyMode = mode;
+        if (mode === 'fingerprint_only') {
+            $('#card-batch-copy-mode-fp').css({
+                'border-color': '#7367f0 !important',
+                'background-color': 'rgba(115, 103, 240, 0.04)'
+            });
+            $('#card-batch-copy-mode-full').css({
+                'border-color': '#dbdade !important',
+                'background-color': '#fff'
+            });
+            $('#label-batch-fp-scope-all').html('<i class="ti ti-users me-1 text-primary"></i> Semua Pengguna Pemilik Sidik Jari');
+            $('#desc-batch-fp-scope-all').text('Analisis seluruh user di mesin sumber yang memiliki sidik jari.');
+        } else {
+            $('#card-batch-copy-mode-full').css({
+                'border-color': '#7367f0 !important',
+                'background-color': 'rgba(115, 103, 240, 0.04)'
+            });
+            $('#card-batch-copy-mode-fp').css({
+                'border-color': '#dbdade !important',
+                'background-color': '#fff'
+            });
+            $('#label-batch-fp-scope-all').html('<i class="ti ti-users me-1 text-primary"></i> Semua Pengguna di Mesin Sumber');
+            $('#desc-batch-fp-scope-all').text('Analisis seluruh akun pengguna di mesin sumber untuk disalin lengkap.');
+        }
+    }
+
+    $('input[name="batch_copy_mode"]').on('change', function() {
+        updateBatchCopyModeUI($(this).val());
+    });
+
+    $('#card-batch-copy-mode-fp').on('click', function(e) {
+        if (!$(e.target).is('input')) {
+            $('#batch-copy-mode-fp').prop('checked', true);
+            updateBatchCopyModeUI('fingerprint_only');
+        }
+    });
+
+    $('#card-batch-copy-mode-full').on('click', function(e) {
+        if (!$(e.target).is('input')) {
+            $('#batch-copy-mode-full').prop('checked', true);
+            updateBatchCopyModeUI('full');
+        }
+    });
+
     function resetBatchFpModal() {
         batchFpState.pins = [];
         batchFpState.missingPins = [];
@@ -1794,6 +1840,9 @@ $(document).ready(function() {
         batchFpState.isProcessing = false;
         batchFpState.candidatesData = [];
 
+        $('#batch-copy-mode-fp').prop('checked', true);
+        updateBatchCopyModeUI('fingerprint_only');
+
         $('#batch-fp-step-1').removeClass('d-none');
         $('#batch-fp-step-2').addClass('d-none');
         $('#batch-fp-step-3').addClass('d-none');
@@ -1802,11 +1851,11 @@ $(document).ready(function() {
         $('#btn-batch-fp-back-to-step-1').addClass('d-none').prop('disabled', false);
         $('#btn-batch-fp-pause').addClass('d-none');
         $('#btn-precheck-batch-fp').removeClass('d-none').prop('disabled', false).html('<i class="ti ti-search me-1"></i> Analisa & Cek Sidik Jari');
-        $('#btn-start-batch-copy-fp').addClass('d-none').prop('disabled', false).html('<i class="ti ti-circle-check me-1 fs-5"></i> ACC & Mulai Salin Sidik Jari (<span id="btn-batch-fp-count-selected">0</span>)');
+        $('#btn-start-batch-copy-fp').addClass('d-none').prop('disabled', false).html('<i class="ti ti-circle-check me-1 fs-5"></i> ACC & Mulai Salin (<span id="btn-batch-fp-count-selected">0</span>)');
         $('#btn-finish-batch-fp').addClass('d-none');
         $('#btn-close-batch-fp-modal').prop('disabled', false);
 
-        $('#batch-fp-live-log').html('<div class="text-muted">[Sistem] Menunggu antrean salin fingerprint...</div>');
+        $('#batch-fp-live-log').html('<div class="text-muted">[Sistem] Menunggu antrean salin data...</div>');
         $('#batch-fp-progress-bar').css('width', '0%').attr('aria-valuenow', 0);
         $('#batch-fp-progress-percent').text('0%');
         $('#batch-fp-progress-text').text('Memproses: 0 / 0 Pengguna');
@@ -1930,6 +1979,7 @@ $(document).ready(function() {
     $('#btn-precheck-batch-fp').on('click', function() {
         var sourceCloudId = $('#batch-fp-source-cloud-id').val();
         var targetCloudId = $('#batch-fp-target-cloud-id').val();
+        var copyMode = $('input[name="batch_copy_mode"]:checked').val() || 'fingerprint_only';
         var scope = $('input[name="batch_fp_scope"]:checked').val();
 
         if (sourceCloudId === targetCloudId) {
@@ -1959,6 +2009,7 @@ $(document).ready(function() {
             data: {
                 source_cloud_id: sourceCloudId,
                 target_cloud_id: targetCloudId,
+                copy_mode: copyMode,
                 pins: pins,
                 _token: csrfToken
             },
@@ -1972,6 +2023,7 @@ $(document).ready(function() {
 
                 batchFpState.sourceCloudId = sourceCloudId;
                 batchFpState.targetCloudId = targetCloudId;
+                batchFpState.copyMode = res.copy_mode || copyMode;
                 batchFpState.candidatesData = res.users || [];
                 batchFpState.missingPins = res.missing_template_pins || [];
 
@@ -1994,7 +2046,11 @@ $(document).ready(function() {
 
                 $('#btn-batch-fp-back-to-step-1').removeClass('d-none');
                 btn.addClass('d-none');
-                $('#btn-start-batch-copy-fp').removeClass('d-none');
+
+                var btnActionLabel = (batchFpState.copyMode === 'full')
+                    ? '<i class="ti ti-circle-check me-1 fs-5"></i> ACC & Mulai Salin User & Fingerprint (<span id="btn-batch-fp-count-selected">0</span>)'
+                    : '<i class="ti ti-circle-check me-1 fs-5"></i> ACC & Mulai Salin Sidik Jari (<span id="btn-batch-fp-count-selected">0</span>)';
+                $('#btn-start-batch-copy-fp').html(btnActionLabel).removeClass('d-none');
             },
             error: function(err) {
                 btn.prop('disabled', false).html('<i class="ti ti-search me-1"></i> Analisa & Cek Sidik Jari');
@@ -2011,23 +2067,27 @@ $(document).ready(function() {
         var candidates = batchFpState.candidatesData;
 
         if (candidates.length === 0) {
-            tbody.html('<tr><td colspan="6" class="text-center py-4 text-muted"><i class="ti ti-info-circle me-1"></i> Tidak ada pengguna dengan sidik jari di mesin sumber ini. Pastikan mesin sumber telah online dan sinkronkan data pengguna.</td></tr>');
+            tbody.html('<tr><td colspan="6" class="text-center py-4 text-muted"><i class="ti ti-info-circle me-1"></i> Tidak ada pengguna di mesin sumber ini. Pastikan mesin sumber telah online dan sinkronkan data pengguna.</td></tr>');
             updateSelectedFpCount();
             return;
         }
 
         var visibleCount = 0;
         $.each(candidates, function(idx, u) {
-            if (filterReadyOnly && u.status_type !== 'ready') {
+            var isReady = (batchFpState.copyMode === 'full') 
+                ? (u.status_type === 'ready' || u.status_type === 'ready_user_only' || u.status_type === 'warning_template')
+                : (u.status_type === 'ready');
+
+            if (filterReadyOnly && !isReady) {
                 return;
             }
             visibleCount++;
 
-            var isChecked = (u.status_type === 'ready') ? 'checked' : '';
-            var isDisabled = (u.status_type !== 'ready') ? 'disabled' : '';
+            var isChecked = isReady ? 'checked' : '';
+            var isDisabled = (!isReady && batchFpState.copyMode === 'fingerprint_only') ? 'disabled' : '';
 
             var rowHtml = `
-                <tr class="${u.status_type !== 'ready' ? 'table-light opacity-75' : ''}">
+                <tr class="${!isReady ? 'table-light opacity-75' : ''}">
                     <td class="text-center">
                         <input type="checkbox" class="form-check-input batch-fp-candidate-checkbox" data-pin="${u.pin}" ${isChecked} ${isDisabled}>
                     </td>
@@ -2145,6 +2205,8 @@ $(document).ready(function() {
         batchFpState.isPaused = false;
         batchFpState.isProcessing = true;
 
+        var modeLabel = (batchFpState.copyMode === 'full') ? 'User & Fingerprint' : 'Fingerprint';
+
         $('#batch-fp-step-2').addClass('d-none');
         $('#batch-fp-step-3').removeClass('d-none');
 
@@ -2155,11 +2217,11 @@ $(document).ready(function() {
         $('#btn-close-batch-fp-modal').prop('disabled', true);
 
         $('#batch-fp-live-spinner').show();
-        $('#batch-fp-status-title').text('Sedang Menyalin Fingerprint ke Mesin Tujuan...');
+        $('#batch-fp-status-title').text(`Sedang Menyalin ${modeLabel} ke Mesin Tujuan...`);
         $('#batch-fp-status-subtitle').text('Mohon jangan menutup jendela browser ini hingga seluruh batch selesai.');
         $('#batch-fp-live-log').empty();
 
-        appendBatchFpLog('info', `[Mulai] Menjalankan salin fingerprint untuk ${batchFpState.total} pengguna dari Mesin (${batchFpState.sourceCloudId}) ke Mesin (${batchFpState.targetCloudId})...`);
+        appendBatchFpLog('info', `[Mulai] Menjalankan salin ${modeLabel} untuk ${batchFpState.total} pengguna dari Mesin (${batchFpState.sourceCloudId}) ke Mesin (${batchFpState.targetCloudId})...`);
 
         updateBatchFpProgressUI();
         executeNextBatchFpChunk();
@@ -2216,6 +2278,7 @@ $(document).ready(function() {
             data: {
                 source_cloud_id: batchFpState.sourceCloudId,
                 target_cloud_id: batchFpState.targetCloudId,
+                copy_mode: batchFpState.copyMode,
                 pins: chunk,
                 _token: csrfToken
             },
@@ -2265,7 +2328,8 @@ $(document).ready(function() {
             batchFpState.isPaused = false;
             $(this).removeClass('btn-outline-success').addClass('btn-outline-danger')
                    .html('<i class="ti ti-player-pause me-1"></i> Hentikan');
-            $('#batch-fp-status-title').text('Sedang Menyalin Fingerprint ke Mesin Tujuan...');
+            var modeLabel = (batchFpState.copyMode === 'full') ? 'User & Fingerprint' : 'Fingerprint';
+            $('#batch-fp-status-title').text(`Sedang Menyalin ${modeLabel} ke Mesin Tujuan...`);
             $('#batch-fp-live-spinner').show();
             executeNextBatchFpChunk();
         }
@@ -2274,8 +2338,9 @@ $(document).ready(function() {
     function finishBatchFpCopy() {
         batchFpState.isProcessing = false;
         $('#batch-fp-live-spinner').hide();
-        $('#batch-fp-status-title').html('<i class="ti ti-circle-check text-success me-1"></i> Salin Fingerprint Selesai!');
-        $('#batch-fp-status-subtitle').text('Seluruh data sidik jari telah dikirimkan ke mesin tujuan.');
+        var modeLabel = (batchFpState.copyMode === 'full') ? 'User & Fingerprint' : 'Fingerprint';
+        $('#batch-fp-status-title').html(`<i class="ti ti-circle-check text-success me-1"></i> Salin ${modeLabel} Selesai!`);
+        $('#batch-fp-status-subtitle').text('Seluruh data antrean telah selesai diproses ke mesin tujuan.');
         $('#btn-batch-fp-pause').addClass('d-none');
         $('#btn-finish-batch-fp').removeClass('d-none');
         $('#btn-close-batch-fp-modal').prop('disabled', false);
@@ -2288,10 +2353,11 @@ $(document).ready(function() {
 
     $('#btn-finish-batch-fp').on('click', function() {
         $('#modal-batch-copy-fingerprint').modal('hide');
+        var modeLabel = (batchFpState.copyMode === 'full') ? 'User & Fingerprint' : 'Fingerprint';
         Swal.fire({
             icon: 'success',
-            title: 'Salin Fingerprint Tuntas!',
-            html: `<p>Data sidik jari civitas telah terkirim ke mesin tujuan.</p>
+            title: `Salin ${modeLabel} Tuntas!`,
+            html: `<p>Data pengguna/biometrik telah selesai dikirimkan ke mesin tujuan.</p>
                    <div class="row text-center g-2 mt-2">
                        <div class="col-4"><span class="badge bg-success w-100 py-2">Berhasil: ${batchFpState.success}</span></div>
                        <div class="col-4"><span class="badge bg-info w-100 py-2">Dilewati: ${batchFpState.skipped}</span></div>
