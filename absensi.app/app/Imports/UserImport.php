@@ -157,10 +157,11 @@ class UserImport implements ToCollection
                 }
 
                 // 3.1. Auto-create or resolve Role
-                $roleId = $this->resolveRole($roleStr);
+                $roleId = $this->resolveRole($roleStr, $deptStr);
 
                 // 3.2. Auto-create or resolve Departemen
                 $departemenId = $this->resolveDepartemen($deptKodeStr, $deptStr);
+
 
                 // 3.3. Gender mapping
                 $jenisKelamin = $this->resolveGender($lp);
@@ -218,9 +219,10 @@ class UserImport implements ToCollection
             $raw = $cell['raw'];
 
             // Match KODE-DEPARTEMEN first before DEPARTEMEN
-            if (str_contains($c, 'kodedep') || str_contains($raw, 'kode-dep') || str_contains($raw, 'kode dep')) {
+            if (str_contains($c, 'kodedep') || str_contains($c, 'kddep') || str_contains($c, 'iddep') || str_contains($raw, 'kode-dep') || str_contains($raw, 'kode dep') || str_contains($raw, 'kd dep') || str_contains($raw, 'kd-dep')) {
                 $map['kode_departemen'] = $idx;
                 $matchedFields++;
+
             } elseif (str_contains($c, 'departemen') || str_contains($c, 'department') || $c === 'dept') {
                 if (!isset($map['departemen'])) {
                     $map['departemen'] = $idx;
@@ -267,14 +269,19 @@ class UserImport implements ToCollection
     /**
      * Resolve or auto-create Role.
      */
-    protected function resolveRole($roleStr): int
+    protected function resolveRole($roleStr, $deptStr = null): int
     {
         $roleName = strtolower(trim((string)$roleStr));
         if ($roleName === '') {
-            $roleName = 'user';
+            $cleanDept = strtolower(trim((string)$deptStr));
+            if ($cleanDept !== '' && Role::whereRaw('LOWER(TRIM(akses)) = ?', [$cleanDept])->exists()) {
+                $roleName = $cleanDept;
+            } else {
+                $roleName = 'user';
+            }
         }
 
-        $role = Role::where('akses', $roleName)->first();
+        $role = Role::whereRaw('LOWER(TRIM(akses)) = ?', [$roleName])->first();
         if (!$role) {
             $role = Role::create(['akses' => $roleName]);
             $this->newRolesList[] = $roleName;
@@ -285,6 +292,8 @@ class UserImport implements ToCollection
 
     /**
      * Resolve or auto-create Departemen.
+     * Prioritizes explicit human-entered department name over code
+     * to prevent unintended mapping if template codes conflict with DB.
      */
     protected function resolveDepartemen($deptKodeStr, $deptNamaStr): ?int
     {
@@ -297,41 +306,57 @@ class UserImport implements ToCollection
 
         $dept = null;
 
-        // 1. Try finding by kode if given
-        if ($cleanKode !== '') {
-            $dept = Departemen::where('kode', $cleanKode)->first();
+        // 1. Prioritize finding by explicit nama (case-insensitive & trimmed)
+        if ($cleanNama !== '') {
+            $dept = Departemen::whereRaw('LOWER(TRIM(nama)) = ?', [strtolower($cleanNama)])->first();
         }
 
-        // 2. Try finding by nama if not found by kode
-        if (!$dept && $cleanNama !== '') {
-            $dept = Departemen::where('nama', $cleanNama)->first();
+        // 2. If not found by nama, try finding by kode
+        if (!$dept && $cleanKode !== '') {
+            $deptByKode = Departemen::where('kode', $cleanKode)->first();
+            if ($deptByKode) {
+                if ($cleanNama === '') {
+                    // No name was provided, so use the department found by kode
+                    $dept = $deptByKode;
+                } else {
+                    // Name was provided but not found in DB.
+                    // If the existing department with this kode has a generic placeholder name
+                    // (e.g. name equals kode or starts with "departemen"), update it with cleanNama.
+                    $lowerCurr = strtolower(trim((string)$deptByKode->nama));
+                    if ($lowerCurr === strtolower($deptByKode->kode) || empty($deptByKode->nama) || str_starts_with($lowerCurr, 'departemen')) {
+                        $deptByKode->nama = $cleanNama;
+                        $deptByKode->save();
+                        $dept = $deptByKode;
+                    }
+                    // Otherwise, the kode belongs to an established different department (e.g. 'Staff'),
+                    // so we do NOT hijack it. Fall through to auto-create the new department.
+                }
+            }
         }
 
-        // 3. Auto-create if neither matched
+        // 3. Auto-create if neither matched or name was new
         if (!$dept) {
-            if ($cleanKode === '') {
-                // Auto-generate numeric kode
+            // Find a unique kode for the new department
+            if ($cleanKode !== '' && !Departemen::where('kode', $cleanKode)->exists()) {
+                $finalKode = $cleanKode;
+            } else {
                 $maxNum = Departemen::whereRaw('kode REGEXP "^[0-9]+$"')->max(DB::raw('CAST(kode AS UNSIGNED)'));
                 $next = $maxNum ? ($maxNum + 1) : (Departemen::count() + 1);
-                $cleanKode = sprintf('%03d', $next);
+                $finalKode = sprintf('%03d', $next);
+                while (Departemen::where('kode', $finalKode)->exists()) {
+                    $next++;
+                    $finalKode = sprintf('%03d', $next);
+                }
             }
 
-            if ($cleanNama === '') {
-                $cleanNama = 'Departemen ' . $cleanKode;
-            }
+            $finalNama = $cleanNama !== '' ? $cleanNama : ('Departemen ' . $finalKode);
 
             $dept = Departemen::create([
-                'kode' => $cleanKode,
-                'nama' => $cleanNama,
+                'kode' => $finalKode,
+                'nama' => $finalNama,
             ]);
 
-            $this->newDepartemenList[] = "{$cleanKode} - {$cleanNama}";
-        } else {
-            // Update nama if previously generic or identical to kode
-            if ($cleanNama !== '' && ($dept->nama === $dept->kode || empty($dept->nama))) {
-                $dept->nama = $cleanNama;
-                $dept->save();
-            }
+            $this->newDepartemenList[] = "{$finalKode} - {$finalNama}";
         }
 
         return $dept->id;
