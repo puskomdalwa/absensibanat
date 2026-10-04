@@ -30,7 +30,7 @@
                 </button>
 
                 @if (\Auth::check())
-                    @if (\Auth::user()->hasRole('admin', 'staff'))
+                    @if (\Auth::user()->hasRole('superadmin', 'admin', 'staff'))
                         <a href="{{ url('/admin/dashboard') }}" class="dalwa-pill-btn-text">
                             Dashboard
                         </a>
@@ -64,7 +64,7 @@
                         Login
                     </a>
                 @else
-                    @if (\Auth::user()->hasRole('admin', 'staff'))
+                    @if (\Auth::user()->hasRole('superadmin', 'admin', 'staff'))
                         <a href="{{ url('/admin/dashboard') }}" class="dalwa-mobile-login-btn" title="Dashboard" style="pointer-events: auto !important;">
                             <i class="fa-solid fa-gauge-high"></i>
                         </a>
@@ -101,7 +101,7 @@
                 </a>
 
                 @if (\Auth::check())
-                    @if (!\Auth::user()->hasRole('admin', 'staff'))
+                    @if (!\Auth::user()->hasRole('superadmin', 'admin', 'staff'))
                         <!-- 2.1 Dashboard Khusus Role Selain Admin & Staff (Dosen, User, Santri, dll) -->
                         <a href="{{ url('/dashboard') }}" 
                            class="banat-mobile-link {{ request()->is('dashboard*') ? 'active' : '' }}">
@@ -176,7 +176,7 @@
             <div class="pt-3 border-top mt-3" style="border-color: rgba(224, 82, 117, 0.15) !important;">
                 @if (\Auth::check())
                     <div class="d-flex flex-column gap-2">
-                        @if (\Auth::user()->hasRole('admin', 'staff'))
+                        @if (\Auth::user()->hasRole('superadmin', 'admin', 'staff'))
                             <a href="{{ url('/admin/dashboard') }}" class="btn-banat-login w-100 text-center">
                                 <i class="fa-solid fa-gauge-high me-1"></i> Dashboard Absensi
                             </a>

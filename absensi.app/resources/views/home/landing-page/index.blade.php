@@ -44,7 +44,7 @@
 
                             <!-- Hero Call-to-Action Buttons -->
                             <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start align-items-center">
-                                <a href="{{ \Auth::check() && \Auth::user()->hasRole('admin', 'staff') ? url('/admin/dashboard') : url('/dashboard') }}" class="btn-banat-primary">
+                                <a href="{{ \Auth::check() && \Auth::user()->hasRole('superadmin', 'admin', 'staff') ? url('/admin/dashboard') : url('/dashboard') }}" class="btn-banat-primary">
                                     <i class="fa-solid fa-gauge-high"></i> Dashboard
                                 </a>
                                 @if (!\Auth::check() || \Auth::user()->isAdmin())

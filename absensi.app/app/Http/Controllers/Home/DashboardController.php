@@ -16,6 +16,9 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
+        if ($user && $user->hasRole('superadmin', 'admin', 'staff')) {
+            return redirect()->route('admin.dashboard.index');
+        }
         return view('home.dashboard.index', compact('user'));
     }
 

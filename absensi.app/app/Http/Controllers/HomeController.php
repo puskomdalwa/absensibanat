@@ -25,7 +25,7 @@ class HomeController extends Controller
     public function index()
     {
         if (Auth::check()) {
-            if (Auth::user()->hasRole('admin', 'staff')) {
+            if (Auth::user()->hasRole('superadmin', 'admin', 'staff')) {
                 return redirect()->route('admin.dashboard.index');
             }
         }
