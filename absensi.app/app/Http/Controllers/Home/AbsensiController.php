@@ -17,7 +17,7 @@ class AbsensiController extends Controller
     public function index(Request $request)
     {
         if (request()->ajax()) {
-            $users = User::where('role_id', '!=', 1)
+            $users = User::civitasOnly()
                 ->when($request->departemen_id != '*' && $request->departemen_id != null, function ($query) use ($request) {
                     $query->where('departemen_id', $request->departemen_id);
                 })

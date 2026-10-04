@@ -403,6 +403,32 @@
     transform: translateY(0);
 }
 
+/* Loading & Disabled State for Login Button */
+.dalwa-btn-submit:disabled,
+.dalwa-btn-submit.is-loading {
+    opacity: 0.85 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: 0 4px 14px rgba(225, 29, 72, 0.25) !important;
+    pointer-events: none !important;
+}
+
+.dalwa-btn-spinner {
+    display: inline-block;
+    width: 17px;
+    height: 17px;
+    border: 2.5px solid rgba(255, 255, 255, 0.35);
+    border-radius: 50%;
+    border-top-color: #ffffff;
+    animation: dalwa-btn-spin 0.7s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+@keyframes dalwa-btn-spin {
+    to { transform: rotate(360deg); }
+}
+
 /* Footer text inside form */
 .dalwa-login-footer {
     border-top: 1px solid #f1f5f9;
@@ -771,8 +797,8 @@ footer.py-5 {
                         </a>
                     </div>
 
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn dalwa-btn-submit w-100" name="login">
+                    <!-- Submit Button with Loader & Disabled State -->
+                    <button type="submit" class="btn dalwa-btn-submit w-100" id="btnSubmitLogin" name="login">
                         <i class="fa-solid fa-arrow-right-to-bracket me-2"></i> Masuk Sekarang
                     </button>
 
@@ -988,7 +1014,19 @@ footer.py-5 {
             }, 800);
         });
 
-        $('#form-login').submit(function(e) {
+        $('#form-login').on('submit', function(e) {
+            const form = this;
+            if (form.checkValidity && !form.checkValidity()) {
+                return;
+            }
+
+            const $btn = $('#btnSubmitLogin');
+
+            if ($btn.data('loading') === true) {
+                e.preventDefault();
+                return false;
+            }
+
             if (typeof Cookies !== 'undefined') {
                 if ($('#remember-me').is(":checked")) {
                     Cookies.set('username', $('#form-login [name="username"]').val());
@@ -998,6 +1036,15 @@ footer.py-5 {
                     Cookies.remove('password');
                 }
             }
+
+            // Tampilkan animasi loader & nonaktifkan klik
+            $btn.data('loading', true)
+                .addClass('is-loading')
+                .html('<span class="dalwa-btn-spinner"></span><span>Memproses...</span>');
+
+            setTimeout(function() {
+                $btn.prop('disabled', true);
+            }, 10);
         });
     </script>
 @endpush

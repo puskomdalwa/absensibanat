@@ -97,27 +97,27 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,staff'])->group(function
     Route::prefix('role')->middleware('role:admin')->group(function () {
         Route::get('/', [RoleController::class, 'index'])->name('admin.role.index');
         Route::get('/data', [RoleController::class, 'data'])->name('admin.role.data');
-        Route::post('/store', [RoleController::class, 'store'])->name('admin.role.store');
-        Route::put('/update', [RoleController::class, 'update'])->name('admin.role.update');
-        Route::delete('/delete', [RoleController::class, 'delete'])->name('admin.role.delete');
+        Route::post('/store', [RoleController::class, 'store'])->name('admin.role.store')->middleware('role:superadmin');
+        Route::put('/update', [RoleController::class, 'update'])->name('admin.role.update')->middleware('role:superadmin');
+        Route::delete('/delete', [RoleController::class, 'delete'])->name('admin.role.delete')->middleware('role:superadmin');
     });
 
     Route::prefix('type')->middleware('role:admin')->group(function () {
         Route::get('/', [TypeController::class, 'index'])->name('admin.type.index');
         Route::get('/data', [TypeController::class, 'data'])->name('admin.type.data');
-        Route::post('/store', [TypeController::class, 'store'])->name('admin.type.store');
-        Route::put('/update', [TypeController::class, 'update'])->name('admin.type.update');
-        Route::delete('/delete', [TypeController::class, 'delete'])->name('admin.type.delete');
-        Route::get('/{type}/assign', [TypeController::class, 'assign'])->name('admin.type.assign');
-        Route::post('/{type}/assign', [TypeController::class, 'assignStore'])->name('admin.type.assign.store');
+        Route::post('/store', [TypeController::class, 'store'])->name('admin.type.store')->middleware('role:superadmin');
+        Route::put('/update', [TypeController::class, 'update'])->name('admin.type.update')->middleware('role:superadmin');
+        Route::delete('/delete', [TypeController::class, 'delete'])->name('admin.type.delete')->middleware('role:superadmin');
+        Route::get('/{type}/assign', [TypeController::class, 'assign'])->name('admin.type.assign')->middleware('role:superadmin');
+        Route::post('/{type}/assign', [TypeController::class, 'assignStore'])->name('admin.type.assign.store')->middleware('role:superadmin');
     });
 
     Route::prefix('departemen')->middleware('role:admin')->group(function () {
         Route::get('/', [DepartemenController::class, 'index'])->name('admin.departemen.index');
         Route::get('/data', [DepartemenController::class, 'data'])->name('admin.departemen.data');
-        Route::post('/store', [DepartemenController::class, 'store'])->name('admin.departemen.store');
-        Route::put('/update', [DepartemenController::class, 'update'])->name('admin.departemen.update');
-        Route::delete('/delete', [DepartemenController::class, 'delete'])->name('admin.departemen.delete');
+        Route::post('/store', [DepartemenController::class, 'store'])->name('admin.departemen.store')->middleware('role:superadmin');
+        Route::put('/update', [DepartemenController::class, 'update'])->name('admin.departemen.update')->middleware('role:superadmin');
+        Route::delete('/delete', [DepartemenController::class, 'delete'])->name('admin.departemen.delete')->middleware('role:superadmin');
     });
 
     Route::prefix('absensi')->group(function () {
@@ -136,11 +136,11 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,staff'])->group(function
     Route::prefix('user')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('admin.user.index');
         Route::get('/data', [UserController::class, 'data'])->name('admin.user.data');
-        Route::get('/{user}/absensi', [LaporanController::class, 'adminUserDetail'])->name('admin.user.absensi.detail');
-        Route::get('/{user}/absensi/summary', [LaporanController::class, 'adminUserDetailSummary'])->name('admin.user.absensi.summary');
-        Route::get('/{user}/absensi/data', [LaporanController::class, 'adminUserDetailData'])->name('admin.user.absensi.data');
-        Route::get('/{user}/absensi/export/excel', [LaporanController::class, 'adminUserDetailExportExcel'])->name('admin.user.absensi.export.excel');
-        Route::get('/{user}/absensi/export/pdf', [LaporanController::class, 'adminUserDetailExportPdf'])->name('admin.user.absensi.export.pdf');
+        Route::get('/{user}/absensi', [LaporanController::class, 'adminUserDetail'])->name('admin.user.absensi.detail')->middleware('absensi_access');
+        Route::get('/{user}/absensi/summary', [LaporanController::class, 'adminUserDetailSummary'])->name('admin.user.absensi.summary')->middleware('absensi_access');
+        Route::get('/{user}/absensi/data', [LaporanController::class, 'adminUserDetailData'])->name('admin.user.absensi.data')->middleware('absensi_access');
+        Route::get('/{user}/absensi/export/excel', [LaporanController::class, 'adminUserDetailExportExcel'])->name('admin.user.absensi.export.excel')->middleware('absensi_access');
+        Route::get('/{user}/absensi/export/pdf', [LaporanController::class, 'adminUserDetailExportPdf'])->name('admin.user.absensi.export.pdf')->middleware('absensi_access');
         Route::post('/store', [UserController::class, 'store'])->name('admin.user.store');
         Route::put('/update', [UserController::class, 'update'])->name('admin.user.update');
         Route::delete('/delete', [UserController::class, 'delete'])->name('admin.user.delete');
@@ -175,7 +175,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,staff'])->group(function
         Route::delete('/delete', [GalleryController::class, 'destroy'])->name('admin.gallery.delete');
     });
 
-    Route::prefix('api-client')->middleware('role:admin')->group(function () {
+    Route::prefix('api-client')->middleware('role:superadmin')->group(function () {
         Route::get('/', [ApiClientController::class, 'index'])->name('admin.api_client.index');
         Route::get('/data', [ApiClientController::class, 'data'])->name('admin.api_client.data');
         Route::post('/store', [ApiClientController::class, 'store'])->name('admin.api_client.store');
@@ -183,7 +183,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,staff'])->group(function
         Route::delete('/delete', [ApiClientController::class, 'delete'])->name('admin.api_client.delete');
     });
 
-    Route::prefix('fingerspot')->middleware('role:admin')->group(function () {
+    Route::prefix('fingerspot')->middleware('role:superadmin')->group(function () {
         Route::get('/', [FingerspotController::class, 'index'])->name('admin.fingerspot.index');
         Route::get('/test-connection', [FingerspotController::class, 'testConnection'])->name('admin.fingerspot.test_connection');
         

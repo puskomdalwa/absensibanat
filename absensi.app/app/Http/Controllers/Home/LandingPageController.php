@@ -14,7 +14,10 @@ class LandingPageController extends Controller
 
     public function getData(Request $request)
     {
-        $data = User::where('departemen_id', $request->departemen_id)->limit(8)->get();
+        $data = User::civitasOnly()
+            ->where('departemen_id', $request->departemen_id)
+            ->limit(8)
+            ->get();
         return view('home.landing-page.data', compact('data'));
     }
 
@@ -23,8 +26,8 @@ class LandingPageController extends Controller
         $departemenId = $request->get('departemen_id');
         $queryText = trim((string)$request->get('q', ''));
 
-        $query = User::with('departemen')
-            ->where('id', '!=', 1);
+        $query = User::civitasOnly()
+            ->with('departemen');
 
         if ($departemenId && $departemenId !== '*' && $departemenId !== 'all') {
             $query->where('departemen_id', $departemenId);

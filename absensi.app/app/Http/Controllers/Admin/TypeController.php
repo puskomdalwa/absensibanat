@@ -20,6 +20,7 @@ class TypeController extends Controller
 
     public function data(Request $request)
     {
+        $isSuperAdmin = $request->user()->isSuperAdmin();
         $search = request('search.value');
         $data = Type::select('*');
         return DataTables::of($data)
@@ -28,7 +29,10 @@ class TypeController extends Controller
                     $query->orWhere('nama', 'LIKE', "%$search%");
                 });
             })
-            ->addColumn('action', function ($row) {
+            ->addColumn('action', function ($row) use ($isSuperAdmin) {
+                if (! $isSuperAdmin) {
+                    return '<span class="badge bg-label-secondary"><i class="ti ti-lock ti-xs me-1"></i>Read Only</span>';
+                }
                 $actionButtons = '
                         <div class="d-inline-block">
                             <a href="javascript:;" class="btn btn-sm btn-text-secondary rounded-pill btn-icon dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
@@ -67,6 +71,9 @@ class TypeController extends Controller
 
     public function store(Request $request)
     {
+        if (! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Akses Ditolak. Modul Tipe Pengguna hanya dapat dikelola oleh Superadmin.');
+        }
         try {
             DB::beginTransaction();
             $request->validate([
@@ -103,6 +110,9 @@ class TypeController extends Controller
 
     public function update(Request $request)
     {
+        if (! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Akses Ditolak. Modul Tipe Pengguna hanya dapat dikelola oleh Superadmin.');
+        }
         try {
             DB::beginTransaction();
             $type = Type::findOrFail($request->id);
@@ -141,6 +151,9 @@ class TypeController extends Controller
 
     public function delete(Request $request)
     {
+        if (! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Akses Ditolak. Modul Tipe Pengguna hanya dapat dikelola oleh Superadmin.');
+        }
         try {
             DB::beginTransaction();
             $request->validate([
@@ -174,6 +187,9 @@ class TypeController extends Controller
      */
     public function assign($id)
     {
+        if (! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Akses Ditolak. Modul Tipe Pengguna hanya dapat dikelola oleh Superadmin.');
+        }
         $type = Type::findOrFail($id);
         $users = User::with(['role', 'departemen', 'type'])->get();
         $departemen = Departemen::all();
@@ -187,6 +203,9 @@ class TypeController extends Controller
      */
     public function assignStore(Request $request, $id)
     {
+        if (! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Akses Ditolak. Modul Tipe Pengguna hanya dapat dikelola oleh Superadmin.');
+        }
         try {
             DB::beginTransaction();
             $type = Type::findOrFail($id);

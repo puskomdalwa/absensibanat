@@ -1,7 +1,7 @@
 @extends('layouts.admin.template')
 @section('title', 'Role')
 @section('content')
-    @php($isStaff = false)
+    @php($canManage = auth()->user()->isSuperAdmin())
 
     <!-- Header Banner -->
     <div class="card banat-page-header-card mb-4" style="background: linear-gradient(135deg, #180f24 0%, #2b143a 50%, #401535 100%) !important; border-radius: 20px !important; border: 1px solid rgba(251, 113, 133, 0.28) !important; box-shadow: 0 14px 35px rgba(18, 9, 28, 0.35) !important; color: #ffffff; position: relative; overflow: hidden;">
@@ -54,10 +54,10 @@
         </div>
     </div>
 
-    @unless ($isStaff)
+    @if ($canManage)
         @include('admin.role.add')
         @include('admin.role.edit')
-    @endunless
+    @endif
 
 @endsection
 
@@ -100,7 +100,7 @@
     </script>
 
     <script>
-        var dataTable = initDataTables('table-1', 'loader-user', 'card-user', {!! $isStaff ? 'false' : "'new-record-button'" !!}, false,
+        var dataTable = initDataTables('table-1', 'loader-user', 'card-user', {!! $canManage ? "'new-record-button'" : 'false' !!}, false,
             'Role', "{{ route('admin.role.data') }}",
             [
                 {

@@ -123,11 +123,6 @@
                 </button>
             </li>
             <li class="nav-item">
-                <button type="button" class="nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-attlog" aria-controls="tab-attlog" aria-selected="false">
-                    <i class="ti ti-calendar-time"></i> Tarik & Sinkron Absensi
-                </button>
-            </li>
-            <li class="nav-item">
                 <button type="button" class="nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-users" aria-controls="tab-users" aria-selected="false">
                     <i class="ti ti-users"></i> Pengguna Mesin
                 </button>
@@ -155,10 +150,6 @@
                 @include('admin.fingerspot.tabs.devices')
             </div>
 
-            {{-- Tab 2: Tarik Absensi --}}
-            <div class="tab-pane fade" id="tab-attlog" role="tabpanel">
-                @include('admin.fingerspot.tabs.attlog')
-            </div>
 
             {{-- Tab 3: Pengguna Mesin --}}
             <div class="tab-pane fade" id="tab-users" role="tabpanel">

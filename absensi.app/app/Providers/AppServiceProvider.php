@@ -34,8 +34,19 @@ class AppServiceProvider extends ServiceProvider
         }
         
         Carbon::setLocale('id');
-        if (env('APP_ENV') !== 'local') {
-        URL::forceScheme('https');
-}
+
+        if (!app()->runningInConsole() && app()->environment('production')) {
+            $host = request()->getHost();
+            $isLocal = in_array($host, ['localhost', '127.0.0.1', '::1'])
+                || str_ends_with($host, '.test')
+                || str_ends_with($host, '.local')
+                || str_starts_with($host, '192.168.')
+                || str_starts_with($host, '10.')
+                || str_starts_with($host, '172.');
+
+            if (!$isLocal) {
+                URL::forceScheme('https');
+            }
+        }
     }
 }

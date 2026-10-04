@@ -25,10 +25,15 @@ class UserController extends Controller
 {
     public function index()
     {
-        $isStaff    = auth()->user()->isStaff();
-        $role       = $isStaff
-            ? Role::where('akses', 'user')->get()
-            : Role::all();
+        $authUser   = auth()->user();
+        $isStaff    = $authUser->isStaff();
+        if ($authUser->isSuperAdmin()) {
+            $role = Role::all();
+        } elseif ($authUser->hasRole('admin')) {
+            $role = Role::whereIn('akses', ['user', 'staff'])->get();
+        } else {
+            $role = Role::where('akses', 'user')->get();
+        }
         $departemen = Departemen::all();
         $type       = Type::all();
         return view('admin.user.index', compact('role', 'departemen', 'type', 'isStaff'));
@@ -36,9 +41,24 @@ class UserController extends Controller
 
     public function data(Request $request)
     {
-        $isStaff = $request->user()->isStaff();
-        $search = request('search.value');
-        $data   = User::select('*');
+        $authUser     = $request->user();
+        $isSuperAdmin = $authUser->isSuperAdmin();
+        $isStaff      = $authUser->isStaff();
+        $search       = request('search.value');
+        $data         = User::select('*');
+
+        if (! $isSuperAdmin) {
+            // Admin dan staff tidak boleh melihat user dengan role superadmin
+            $data->whereDoesntHave('role', function ($q) {
+                $q->where('akses', 'superadmin');
+            });
+        }
+        if ($isStaff) {
+            // Staff juga tidak boleh melihat admin
+            $data->whereDoesntHave('role', function ($q) {
+                $q->where('akses', 'admin');
+            });
+        }
         return DataTables::of($data)
             ->filter(function ($query) use ($search, $request) {
                 $query->when($request->role_id != "*", function ($query) use ($request) {
@@ -94,11 +114,15 @@ class UserController extends Controller
                     </a>
                 ';
             })
-            ->addColumn('action', function ($row) use ($isStaff) {
+            ->addColumn('action', function ($row) use ($isStaff, $isSuperAdmin) {
                 $detailButton = '
                     <a class="dropdown-item" href="' . route('admin.user.absensi.detail', $row->id) . '">
                         Detail Absensi
                     </a>';
+
+                if (! $isSuperAdmin && $row->hasRole('superadmin')) {
+                    return '';
+                }
 
                 if ($isStaff && ! $row->hasRole('user')) {
                     return '<a class="btn btn-sm btn-primary" href="' . route('admin.user.absensi.detail', $row->id) . '">Detail Absensi</a>';
@@ -141,9 +165,12 @@ class UserController extends Controller
                         </div>';
                 return $actionButtons;
             })
-            ->addColumn('checkbox', function ($row) use ($isStaff, $request) {
+            ->addColumn('checkbox', function ($row) use ($isStaff, $isSuperAdmin, $request) {
                 if ($row->id == $request->user()->id) {
                     return '<div class="text-center"><input type="checkbox" class="form-check-input user-row-checkbox" disabled title="Akun Anda sendiri"></div>';
+                }
+                if (! $isSuperAdmin && $row->hasRole('superadmin')) {
+                    return '<div class="text-center"><input type="checkbox" class="form-check-input user-row-checkbox" disabled title="Superadmin tidak dapat dihapus"></div>';
                 }
                 if ($isStaff && ! $row->hasRole('user')) {
                     return '<div class="text-center"><input type="checkbox" class="form-check-input user-row-checkbox" disabled title="Staff hanya dapat menghapus role user"></div>';
@@ -188,13 +215,23 @@ class UserController extends Controller
                 'photo.required_with'       => 'Foto wajib disertakan jika memilih file foto.',
             ]);
 
-            $roleId = $isStaff
-                ? Role::where('akses', 'user')->value('id')
-                : $request->role_id;
+            if ($isStaff) {
+                $roleId = Role::where('akses', 'user')->value('id');
+            } elseif ($request->user()->hasRole('admin')) {
+                $chosenRole = Role::find($request->role_id);
+                if (! $chosenRole || ! in_array(strtolower($chosenRole->akses), ['user', 'staff'])) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'role_id' => 'Admin hanya diperbolehkan membuat pengguna dengan role user atau staff.',
+                    ]);
+                }
+                $roleId = $chosenRole->id;
+            } else {
+                $roleId = $request->role_id;
+            }
 
             if (! $roleId) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'role_id' => 'Role user belum tersedia. Hubungi administrator.',
+                    'role_id' => 'Role belum tersedia atau tidak valid. Hubungi administrator.',
                 ]);
             }
 
@@ -278,10 +315,30 @@ class UserController extends Controller
 
     public function update(Request $request)
     {
+        $authUser     = $request->user();
+        $isSuperAdmin = $authUser->isSuperAdmin();
+        $isAdmin      = $authUser->hasRole('admin');
+        $isStaff      = $authUser->isStaff();
+
         $user = User::findOrFail($request->id);
 
-        if ($request->user()->isStaff() && ! $user->hasRole('user')) {
+        if (! $isSuperAdmin && $user->hasRole('superadmin')) {
+            abort(403, 'Anda tidak memiliki hak untuk mengubah akun Superadmin.');
+        }
+
+        if ($isStaff && ! $user->hasRole('user')) {
             abort(403, 'Staff hanya dapat mengubah akun dengan role user.');
+        }
+
+        if ($isAdmin && $request->filled('role_id')) {
+            $chosenRole = Role::find($request->role_id);
+            if ($chosenRole && ! in_array(strtolower($chosenRole->akses), ['user', 'staff'])) {
+                return response()->json([
+                    'status' => false,
+                    'type'   => 'error',
+                    'message' => 'Admin hanya diperbolehkan menetapkan role user atau staff.',
+                ], 422);
+            }
         }
 
         try {
@@ -372,9 +429,12 @@ class UserController extends Controller
 
     public function delete(Request $request)
     {
-        $data = User::findOrFail($request->id);
+        $authUser     = $request->user();
+        $isSuperAdmin = $authUser->isSuperAdmin();
+        $isStaff      = $authUser->isStaff();
+        $data         = User::findOrFail($request->id);
 
-        if ($request->user()->id == $data->id) {
+        if ($authUser->id == $data->id) {
             return response()->json([
                 'status'  => false,
                 'type'    => 'error',
@@ -382,7 +442,11 @@ class UserController extends Controller
             ], 422);
         }
 
-        if ($request->user()->isStaff() && ! $data->hasRole('user')) {
+        if (! $isSuperAdmin && $data->hasRole('superadmin')) {
+            abort(403, 'Akun Superadmin tidak dapat dihapus.');
+        }
+
+        if ($isStaff && ! $data->hasRole('user')) {
             abort(403, 'Staff hanya dapat menghapus akun dengan role user.');
         }
 
@@ -455,6 +519,12 @@ class UserController extends Controller
             DB::beginTransaction();
 
             $query = User::whereIn('id', $targetIds);
+            if (! $currentUser->isSuperAdmin()) {
+                $superadminRoleId = Role::where('akses', 'superadmin')->value('id');
+                if ($superadminRoleId) {
+                    $query->where('role_id', '!=', $superadminRoleId);
+                }
+            }
             if ($currentUser->isStaff()) {
                 $roleUserId = Role::where('akses', 'user')->value('id');
                 $query->where('role_id', $roleUserId);

@@ -26,8 +26,8 @@ class AbsensiAccess
 
         $authUser = Auth::user();
 
-        // Admin bisa akses semua
-        if ($authUser->role_id == 1) {
+        // Admin dan Superadmin bisa akses semua
+        if ($authUser->hasRole('admin', 'superadmin')) {
             return $next($request);
         }
 
@@ -38,8 +38,8 @@ class AbsensiAccess
             // $routeUser bisa berupa model instance (route model binding) atau ID
             $userId = $routeUser instanceof \App\Models\User ? $routeUser->id : $routeUser;
 
-            if ($authUser->id != $userId) {
-                abort(403, 'Anda tidak memiliki akses ke data ini.');
+            if ((string)$authUser->id !== (string)$userId) {
+                abort(403, 'Akses Ditolak. Anda hanya dapat melihat detail absensi Anda sendiri.');
             }
         }
 

@@ -17,45 +17,88 @@
     <div class="menu-inner-shadow"></div>
 
     @php
-        $isStaffMenu = Auth::user()->isStaff();
+        $authUser = Auth::user();
+        $isSuperAdminMenu = $authUser->isSuperAdmin();
+        $isStaffMenu = $authUser->isStaff();
     @endphp
 
     <ul class="menu-inner py-1">
+        <!-- ================================================================ -->
+        <!-- MENU UTAMA                                                       -->
+        <!-- ================================================================ -->
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text" data-i18n="Menu Utama">Menu Utama</span>
+        </li>
+
         <!-- Dashboards -->
         <li class="menu-item {{ request()->routeIs('admin.dashboard*') ? 'active' : '' }}">
             <a href="{{ route('admin.dashboard.index') }}" class="menu-link">
                 <i class="menu-icon tf-icons ti ti-smart-home"></i>
-                <div data-i18n="Dashboards">Dashboards</div>
+                <div data-i18n="Dashboards">Dashboard</div>
+                @if ($isStaffMenu)
+                    <div class="badge bg-label-primary rounded-pill ms-auto">Staff</div>
+                @elseif ($isSuperAdminMenu)
+                    <div class="badge bg-label-danger rounded-pill ms-auto">Superadmin</div>
+                @else
+                    <div class="badge bg-label-success rounded-pill ms-auto">Admin</div>
+                @endif
             </a>
         </li>
 
-        @if ($isStaffMenu)
-            <li class="menu-item {{ request()->routeIs('admin.absensi*') ? 'active' : '' }}">
-                <a href="{{ route('admin.absensi.index') }}" class="menu-link">
-                    <i class="menu-icon tf-icons ti ti-checklist"></i>
-                    <div data-i18n="Absensi Departemen">Absensi Departemen</div>
+        @if (! $isStaffMenu)
+            <!-- Laporan Rekap (Khusus Admin & Superadmin) -->
+            <li class="menu-item {{ request()->routeIs('admin.laporan*') ? 'active' : '' }}">
+                <a href="{{ route('admin.laporan.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ti ti-file-analytics"></i>
+                    <div data-i18n="Laporan">Laporan Rekap</div>
                 </a>
             </li>
         @endif
 
-        @if (! $isStaffMenu)
-            <li class="menu-item {{ request()->routeIs('admin.laporan*') ? 'active' : '' }}">
-                <a href="{{ route('admin.laporan.index') }}" class="menu-link">
-                    <i class="menu-icon tf-icons ti ti-report"></i>
-                    <div data-i18n="Laporan">Laporan</div>
-                </a>
-            </li>
+        <!-- ================================================================ -->
+        <!-- PRESENSI & KEHADIRAN                                             -->
+        <!-- ================================================================ -->
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text" data-i18n="Presensi Civitas">Presensi & Kehadiran</span>
+        </li>
 
-            <!-- MANAGEMENT DATA MASTER -->
-            <li class="menu-header small">
-                <span class="menu-header-text" data-i18n="Management Data Master">Management Data Master</span>
+        <!-- Absensi Departemen (Accordion Submenu) -->
+        <li class="menu-item {{ request()->routeIs('admin.absensi*') ? 'active open' : '' }}">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons ti ti-calendar-check"></i>
+                <div data-i18n="Absensi Departemen">Absensi Departemen</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item {{ request()->routeIs('admin.absensi.index') && !request()->has('departemen') ? 'active' : '' }}">
+                    <a href="{{ route('admin.absensi.index') }}" class="menu-link">
+                        <div data-i18n="Semua Data">Semua Data</div>
+                    </a>
+                </li>
+                @foreach (\Helper::getDepartemen() as $item)
+                    @if (! $isStaffMenu || strtolower($item->nama) !== 'admin')
+                        <li class="menu-item {{ request()->routeIs('admin.absensi.index') && request('departemen') == $item->id ? 'active' : '' }}">
+                            <a href="{{ route('admin.absensi.index', ['departemen' => $item->id]) }}" class="menu-link">
+                                <div data-i18n="{{ $item->nama }}">{{ $item->nama }}</div>
+                            </a>
+                        </li>
+                    @endif
+                @endforeach
+            </ul>
+        </li>
+
+        @if (! $isStaffMenu)
+            <!-- ================================================================ -->
+            <!-- DATA MASTER (Khusus Admin & Superadmin)                          -->
+            <!-- ================================================================ -->
+            <li class="menu-header small text-uppercase">
+                <span class="menu-header-text" data-i18n="Data Master">Data Master</span>
             </li>
 
             <!-- Role -->
             <li class="menu-item {{ request()->routeIs('admin.role*') ? 'active' : '' }}">
                 <a href="{{ route('admin.role.index') }}" class="menu-link">
-                    <i class="menu-icon tf-icons ti ti-key"></i>
-                    <div data-i18n="Role">Role</div>
+                    <i class="menu-icon tf-icons ti ti-shield-lock"></i>
+                    <div data-i18n="Role">Role Akses</div>
                 </a>
             </li>
             <!-- Departemen -->
@@ -68,60 +111,49 @@
             <!-- Type User -->
             <li class="menu-item {{ request()->routeIs('admin.type*') ? 'active' : '' }}">
                 <a href="{{ route('admin.type.index') }}" class="menu-link">
-                    <i class="menu-icon tf-icons ti ti-tag"></i>
+                    <i class="menu-icon tf-icons ti ti-tags"></i>
                     <div data-i18n="Type User">Type User</div>
                 </a>
             </li>
-
-            <!-- ABSENSI DEPARTEMEN -->
-            <li class="menu-header small">
-                <span class="menu-header-text" data-i18n="Absensi Departemen">Absensi Departemen</span>
-            </li>
-
-            <!-- Semua -->
-            <li
-                class="menu-item {{ request()->routeIs('admin.absensi.index') && !request()->has('departemen') ? 'active' : '' }}">
-                <a href="{{ route('admin.absensi.index') }}" class="menu-link">
-                    <i class="menu-icon tf-icons ti ti-checklist"></i>
-                    <div data-i18n="Semua">Semua</div>
-                </a>
-            </li>
-            @php
-                $tags = ['building', 'user-cog', 'compass', 'tags', 'folder'];
-
-            @endphp
-            @foreach (\Helper::getDepartemen() as $item)
-                <!-- {{ $item->nama }} -->
-                <li
-                    class="menu-item {{ request()->routeIs('admin.absensi.index') && request('departemen') == $item->id ? 'active' : '' }}">
-                    <a href="{{ route('admin.absensi.index', ['departemen' => $item->id]) }}" class="menu-link">
-                        <i class="menu-icon tf-icons ti ti-{{ $tags[rand(0, 4)] }}"></i>
-                        <div data-i18n="{{ $item->nama }}">{{ $item->nama }}</div>
-                    </a>
-                </li>
-            @endforeach
-
-            <!-- ADMINISTRATOR-->
-            <li class="menu-header small">
-                <span class="menu-header-text" data-i18n="Administrator">ADMINISTRATOR</span>
-            </li>
-        @endif
-
-        <!-- Users -->
-        <li class="menu-item {{ request()->routeIs('admin.user*') ? 'active' : '' }}">
-            <a href="{{ route('admin.user.index') }}" class="menu-link">
-                <i class="menu-icon tf-icons ti ti-user"></i>
-                <div data-i18n="Users">Users</div>
-            </a>
-        </li>
-        @if (! $isStaffMenu)
             <!-- Kategori -->
             <li class="menu-item {{ request()->routeIs('admin.kategori*') ? 'active' : '' }}">
                 <a href="{{ route('admin.kategori.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons ti ti-category"></i>
-                    <div data-i18n="Kategori">Kategori</div>
+                    <div data-i18n="Kategori">Kategori Durasi</div>
                 </a>
             </li>
+            <!-- Galeri Foto -->
+            <li class="menu-item {{ request()->routeIs('admin.gallery*') ? 'active' : '' }}">
+                <a href="{{ route('admin.gallery.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ti ti-photo"></i>
+                    <div data-i18n="Galeri Foto">Galeri Foto</div>
+                </a>
+            </li>
+        @endif
+
+        <!-- ================================================================ -->
+        <!-- KELOLA CIVITAS / MANAJEMEN PENGGUNA                              -->
+        <!-- ================================================================ -->
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text" data-i18n="Kelola Civitas">{{ $isStaffMenu ? 'Kelola Civitas' : 'Manajemen Pengguna' }}</span>
+        </li>
+
+        <!-- Users -->
+        <li class="menu-item {{ request()->routeIs('admin.user*') ? 'active' : '' }}">
+            <a href="{{ route('admin.user.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons ti ti-users"></i>
+                <div data-i18n="Users">{{ $isStaffMenu ? 'Data Civitas' : 'Data Pengguna' }}</div>
+            </a>
+        </li>
+
+        @if ($isSuperAdminMenu)
+            <!-- ================================================================ -->
+            <!-- SISTEM & INTEGRASI (Khusus Superadmin)                           -->
+            <!-- ================================================================ -->
+            <li class="menu-header small text-uppercase">
+                <span class="menu-header-text" data-i18n="Sistem & Integrasi">Sistem & Integrasi</span>
+            </li>
+
             <!-- Fingerspot Cloud -->
             <li class="menu-item {{ request()->routeIs('admin.fingerspot*') ? 'active' : '' }}">
                 <a href="{{ route('admin.fingerspot.index') }}" class="menu-link">
@@ -137,18 +169,28 @@
                 </a>
             </li>
         @endif
+
+        <!-- ================================================================ -->
+        <!-- PENGATURAN & AKUN                                                -->
+        <!-- ================================================================ -->
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text" data-i18n="Pengaturan & Akun">Pengaturan & Akun</span>
+        </li>
+
         <!-- Profile -->
         <li class="menu-item {{ request()->routeIs('admin.profile*') ? 'active' : '' }}">
             <a href="{{ route('admin.profile.index') }}" class="menu-link">
-                <i class="menu-icon tf-icons ti ti-settings"></i>
-                <div data-i18n="Profile">Profile</div>
+                <i class="menu-icon tf-icons ti ti-user-circle"></i>
+                <div data-i18n="Profile">Profil Saya</div>
             </a>
         </li>
+
+        <!-- Logout -->
         <li class="menu-item">
             <a href="{{ route('logout') }}"
                 onclick="event.preventDefault();document.getElementById('logout-form-sidebar').submit();" class="menu-link">
-                <i class="menu-icon tf-icons ti ti-logout"></i>
-                <div data-i18n="Logout">Logout</div>
+                <i class="menu-icon tf-icons ti ti-logout text-danger"></i>
+                <div data-i18n="Logout" class="text-danger">Logout</div>
             </a>
             <form id="logout-form-sidebar" action="{{ route('logout') }}" method="POST" class="d-none">
                 @csrf

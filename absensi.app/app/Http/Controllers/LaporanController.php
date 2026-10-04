@@ -117,8 +117,24 @@ class LaporanController extends Controller
         ];
     }
 
+    protected function authorizeDetailAccess(User $user)
+    {
+        $authUser = auth()->user();
+        if (! $authUser) {
+            abort(403, 'Akses Ditolak.');
+        }
+
+        if ($authUser->hasRole('admin', 'superadmin') || (string)$authUser->id === (string)$user->id) {
+            return;
+        }
+
+        abort(403, 'Akses Ditolak. Anda hanya dapat melihat detail absensi Anda sendiri.');
+    }
+
     public function adminUserDetail(User $user)
     {
+        $this->authorizeDetailAccess($user);
+
         $kategori = $this->kategoriOptions();
         $device = Device::orderBy('name')->get();
         $verify = Verify::orderBy('name')->get();
@@ -139,6 +155,8 @@ class LaporanController extends Controller
 
     public function adminUserDetailSummary(User $user, Request $request)
     {
+        $this->authorizeDetailAccess($user);
+
         $report = $this->userAbsensiReport($user, $request);
 
         return response()->json([
@@ -151,6 +169,8 @@ class LaporanController extends Controller
 
     public function adminUserDetailData(User $user, Request $request)
     {
+        $this->authorizeDetailAccess($user);
+
         return $this->datatable(
             $this->queryLaporan($request)->where('absensi.users_id', $user->id),
             $request->user()->isAdmin()
@@ -159,6 +179,8 @@ class LaporanController extends Controller
 
     public function adminUserDetailExportExcel(User $user, Request $request)
     {
+        $this->authorizeDetailAccess($user);
+
         $report = $this->userAbsensiReport($user, $request);
 
         return Excel::download(
@@ -169,6 +191,8 @@ class LaporanController extends Controller
 
     public function adminUserDetailExportPdf(User $user, Request $request)
     {
+        $this->authorizeDetailAccess($user);
+
         $report = $this->userAbsensiReport($user, $request);
 
         $options = new Options();

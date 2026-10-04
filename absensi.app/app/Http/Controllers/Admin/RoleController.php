@@ -14,21 +14,34 @@ class RoleController extends Controller
 {
     public function index()
     {
-        $role = Role::all();
+        $isSuperAdmin = auth()->user()->isSuperAdmin();
+        $query = Role::query();
+        if (! $isSuperAdmin) {
+            $query->where('akses', '!=', 'superadmin');
+        }
+        $role = $query->get();
         return view('admin.role.index', compact('role'));
     }
 
     public function data(Request $request)
     {
+        $isSuperAdmin = $request->user()->isSuperAdmin();
         $search = request('search.value');
-        $data = Role::select('*');
+        $data = Role::query();
+        if (! $isSuperAdmin) {
+            $data->where('akses', '!=', 'superadmin');
+        }
+
         return DataTables::of($data)
             ->filter(function ($query) use ($search, $request) {
                 $query->where(function ($query) use ($search) {
                     $query->orWhere('akses', 'LIKE', "%$search%");
                 });
             })
-            ->addColumn('action', function ($row) {
+            ->addColumn('action', function ($row) use ($isSuperAdmin) {
+                if (! $isSuperAdmin) {
+                    return '<span class="badge bg-label-secondary"><i class="ti ti-lock ti-xs me-1"></i>Read Only</span>';
+                }
                 $actionButtons = '
                         <div class="d-inline-block">
                             <a href="javascript:;" class="btn btn-sm btn-text-secondary rounded-pill btn-icon dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
@@ -61,6 +74,9 @@ class RoleController extends Controller
 
     public function store(Request $request)
     {
+        if (! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Akses Ditolak. Modul Role hanya dapat dikelola oleh Superadmin.');
+        }
         try {
             DB::beginTransaction();
             $request->validate([
@@ -97,6 +113,9 @@ class RoleController extends Controller
 
     public function update(Request $request)
     {
+        if (! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Akses Ditolak. Modul Role hanya dapat dikelola oleh Superadmin.');
+        }
         try {
             DB::beginTransaction();
             $role = Role::findOrFail($request->id);
@@ -135,6 +154,9 @@ class RoleController extends Controller
 
     public function delete(Request $request)
     {
+        if (! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Akses Ditolak. Modul Role hanya dapat dikelola oleh Superadmin.');
+        }
         try {
             DB::beginTransaction();
             $request->validate([

@@ -26,6 +26,11 @@ class EnsureUserHasRole
         $allowedRoles = array_map('strtolower', $roles);
         $currentRole = strtolower((string) optional($user->role)->akses);
 
+        // Superadmin memiliki akses penuh ke seluruh modul
+        if ($currentRole === 'superadmin') {
+            return $next($request);
+        }
+
         if (! in_array($currentRole, $allowedRoles, true)) {
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }

@@ -26,7 +26,13 @@ class AbsensiController extends Controller
         /** @var \App\Models\User|null $currentUser */
         $currentUser = auth()->user();
         $isStaff = $currentUser ? $currentUser->isStaff() : false;
-        $user = User::all();
+        $userQuery = User::query();
+        if (! $currentUser->isSuperAdmin()) {
+            $userQuery->whereDoesntHave('role', function ($q) {
+                $q->where('akses', 'superadmin');
+            });
+        }
+        $user = $userQuery->get();
         $departemen = Departemen::all();
         $role = Role::all();
         $tahunAbsensi = Absensi::selectRaw('YEAR(tgl_absen) as tahun')
@@ -46,9 +52,16 @@ class AbsensiController extends Controller
     }
     public function data(Request $request)
     {
-        $isStaff = $request->user()->isStaff();
+        $authUser = $request->user();
+        $isStaff = $authUser->isStaff();
         $data = Absensi::join('users', 'users.id', '=', 'absensi.users_id') // Pastikan join ke tabel users
             ->select('absensi.*', 'users.name as user_name', 'users.role_id', 'users.departemen_id');
+
+        if (! $authUser->isSuperAdmin()) {
+            $data->whereDoesntHave('user.role', function ($q) {
+                $q->where('akses', 'superadmin');
+            });
+        }
         return DataTables::of($data)
             ->filter(function ($query) use ($request) {
                 $this->applyAbsensiFilters($query, $request);

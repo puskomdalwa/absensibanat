@@ -64,14 +64,31 @@ class User extends Authenticatable
         return in_array($currentRole, $allowedRoles, true);
     }
 
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('superadmin');
+    }
+
     public function isAdmin(): bool
     {
-        return $this->hasRole('admin');
+        return $this->hasRole('admin', 'superadmin');
     }
 
     public function isStaff(): bool
     {
         return $this->hasRole('staff');
+    }
+
+    public function isUser(): bool
+    {
+        return $this->hasRole('user');
+    }
+
+    public function scopeCivitasOnly($query)
+    {
+        return $query->whereDoesntHave('role', function ($q) {
+            $q->whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(akses)'), ['admin', 'superadmin']);
+        });
     }
 
     public function type()

@@ -812,6 +812,7 @@
                                     <small class="text-white-50 d-block mb-3">Konfigurasi sinkronisasi biometrik fingerspot dan akses API.</small>
 
                                     <div class="row g-2">
+                                        @if (auth()->user()->isSuperAdmin())
                                         <div class="col-6">
                                             <a href="{{ route('admin.fingerspot.index') }}" class="banat-dept-btn">
                                                 <i class="ti ti-fingerprint banat-dept-icon"></i>
@@ -826,6 +827,7 @@
                                                 <span class="banat-dept-count"><i class="ti ti-chevron-right"></i></span>
                                             </a>
                                         </div>
+                                        @endif
                                         <div class="col-12">
                                             <a href="{{ route('admin.profile.index') }}" class="banat-dept-btn">
                                                 <i class="ti ti-user-cog banat-dept-icon"></i>

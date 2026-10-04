@@ -21,7 +21,10 @@ class RealtimeController extends Controller
     public function data(User $user, Request $request)
     {
         $search = request('search.value');
-        $data   = Absensi::join('users', 'users.id', '=', 'absensi.users_id')
+        $data   = Absensi::whereHas('user', function ($q) {
+                $q->civitasOnly();
+            })
+            ->join('users', 'users.id', '=', 'absensi.users_id')
             ->join('departemen', 'departemen.id', '=', 'users.departemen_id')
             ->join('device', 'device.id', '=', 'absensi.device_id')
             ->select('absensi.*', 'users.name as user_name', 'departemen.nama as departemen_nama', 'device.name as device_name');
@@ -66,7 +69,10 @@ public function dataToday(Request $request)
 {
     $search = request('search.value');
 
-    $data = Absensi::join('users', 'users.id', '=', 'absensi.users_id')
+    $data = Absensi::whereHas('user', function ($q) {
+            $q->civitasOnly();
+        })
+        ->join('users', 'users.id', '=', 'absensi.users_id')
         ->join('departemen', 'departemen.id', '=', 'users.departemen_id')
         ->join('device', 'device.id', '=', 'absensi.device_id')
         ->select(

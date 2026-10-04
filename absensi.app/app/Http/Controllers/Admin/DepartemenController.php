@@ -19,6 +19,7 @@ class DepartemenController extends Controller
 
     public function data(Request $request)
     {
+        $isSuperAdmin = $request->user()->isSuperAdmin();
         $search = request('search.value');
         $data = Departemen::select('*');
         return DataTables::of($data)
@@ -28,7 +29,10 @@ class DepartemenController extends Controller
                     $query->orWhere('nama', 'LIKE', "%$search%");
                 });
             })
-            ->addColumn('action', function ($row) {
+            ->addColumn('action', function ($row) use ($isSuperAdmin) {
+                if (! $isSuperAdmin) {
+                    return '<span class="badge bg-label-secondary"><i class="ti ti-lock ti-xs me-1"></i>Read Only</span>';
+                }
                 $actionButtons = '
                         <div class="d-inline-block">
                             <a href="javascript:;" class="btn btn-sm btn-text-secondary rounded-pill btn-icon dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
@@ -62,6 +66,9 @@ class DepartemenController extends Controller
 
     public function store(Request $request)
     {
+        if (! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Akses Ditolak. Modul Departemen hanya dapat dikelola oleh Superadmin.');
+        }
         try {
             DB::beginTransaction();
             $request->validate([
@@ -100,6 +107,9 @@ class DepartemenController extends Controller
 
     public function update(Request $request)
     {
+        if (! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Akses Ditolak. Modul Departemen hanya dapat dikelola oleh Superadmin.');
+        }
         try {
             DB::beginTransaction();
             $departemen = Departemen::findOrFail($request->id);
@@ -140,6 +150,9 @@ class DepartemenController extends Controller
 
     public function delete(Request $request)
     {
+        if (! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Akses Ditolak. Modul Departemen hanya dapat dikelola oleh Superadmin.');
+        }
         try {
             DB::beginTransaction();
             $request->validate([
