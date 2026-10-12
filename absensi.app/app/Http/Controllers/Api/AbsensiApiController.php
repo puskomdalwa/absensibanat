@@ -14,7 +14,7 @@ class AbsensiApiController extends Controller
     // public function index()
     // {
 
-    //     $absensi = Absensi::join('users', 'users.id', '=', 'absensi.users_id')->paginate(10);
+    //     $absensi = Absensi::with('keterangans')->join('users', 'users.id', '=', 'absensi.users_id')->paginate(10);
 
     //     return response()->json([
     //         'data'       => $absensi->items(),
@@ -30,8 +30,8 @@ class AbsensiApiController extends Controller
     {
 
         $id = $request->user()->id;
-        $absensi = Absensi::join('users', 'users.id', '=', 'absensi.users_id')
-            ->select('absensi.*', 'users.username', 'users.name', 'users.email', 'users.jenis_kelamin', 'users.kode as kode_user', 'users.kode')
+        $absensi = Absensi::with('keterangans')->join('users', 'users.id', '=', 'absensi.users_id')
+            ->select('absensi.*', 'users.username', 'users.name', 'users.email', 'users.jenis_kelamin', 'users.kode as kode_user', 'users.kode')->addSelect(\Illuminate\Support\Facades\DB::raw('EXISTS (SELECT 1 FROM keterangan WHERE keterangan.absensi_id = absensi.id) as has_keterangan'))
             ->where('users_id', $id)->paginate(10);
 
         return response()->json([
@@ -54,8 +54,8 @@ class AbsensiApiController extends Controller
             ]);
 
             $cari = $request->cari;
-            $data = Absensi::join('users', 'users.id', '=', 'absensi.users_id')
-                ->select('absensi.*', 'users.username', 'users.name', 'users.email', 'users.jenis_kelamin', 'users.kode as kode_user', 'users.kode')
+            $data = Absensi::with('keterangans')->join('users', 'users.id', '=', 'absensi.users_id')
+                ->select('absensi.*', 'users.username', 'users.name', 'users.email', 'users.jenis_kelamin', 'users.kode as kode_user', 'users.kode')->addSelect(\Illuminate\Support\Facades\DB::raw('EXISTS (SELECT 1 FROM keterangan WHERE keterangan.absensi_id = absensi.id) as has_keterangan'))
                 ->where('tgl_absen', $request->tgl)
                 // ->where('absensi.users_id', '=', $request->user()->id)
                 ->when($cari, function ($query, $search) {
@@ -113,10 +113,10 @@ class AbsensiApiController extends Controller
                 'tgl' => 'required',
             ]);
 
-            $data = Absensi::join('users', 'users.id', '=', 'absensi.users_id')
+            $data = Absensi::with('keterangans')->join('users', 'users.id', '=', 'absensi.users_id')
                 ->where('tgl_absen', $request->tgl)
                 ->where('absensi.users_id', '!=', $request->user()->id)
-                ->select('absensi.*', 'users.username', 'users.name', 'users.email', 'users.jenis_kelamin', 'users.kode as kode_user', 'users.kode')
+                ->select('absensi.*', 'users.username', 'users.name', 'users.email', 'users.jenis_kelamin', 'users.kode as kode_user', 'users.kode')->addSelect(\Illuminate\Support\Facades\DB::raw('EXISTS (SELECT 1 FROM keterangan WHERE keterangan.absensi_id = absensi.id) as has_keterangan'))
                 ->paginate(10);
 
             if ($data->total() != 0) {
@@ -176,17 +176,20 @@ class AbsensiApiController extends Controller
             Log::info('CARI: ' . $cari);
             $data = User::leftJoin('absensi', function ($join) use ($tgl) {
                 $join->on('users.id', '=', 'absensi.users_id')
-                    // ->whereDate('absensi.tgl_absen', $tgl);
                     ->whereRaw("DATE(absensi.tgl_absen) = ?", [$tgl]);
             })
-                // ->whereNull('absensi.id')
+                ->where(function ($q) {
+                    $q->whereNull('absensi.id')
+                      ->orWhereNull('absensi.pagi')
+                      ->orWhere('absensi.pagi', '=', '-');
+                })
                 ->when($cari, function ($query, $search) {
                     $query->where(function ($q) use ($search) {
                         $q->where('users.name', 'like', "%{$search}%");
                     });
                 })
                 ->select('users.id', 'users.name', 'users.email')
-                ->paginate(10);
+                ->paginate(50);
             Log::info($data);
 
             return response()->json([
@@ -375,7 +378,7 @@ class AbsensiApiController extends Controller
             'tgl' => 'required',
         ]);
 
-        $data = Absensi::join('users', 'users.id', '=', 'absensi.users_id')
+        $data = Absensi::with('keterangans')->join('users', 'users.id', '=', 'absensi.users_id')
             ->where('absensi.users_id', $request->id)->where('absensi.tgl_absen', $request->tgl)
             ->select('users.username as nama_users', 'users.kode as kode_user', 'users.kode', 'keterangan', 'pagi', 'tgl_absen')
             ->orderBy('absensi.created_at', 'desc')

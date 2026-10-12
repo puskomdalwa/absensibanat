@@ -1,0 +1,89 @@
+﻿    function updateProfile(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            $validated = $request->validate([
+                'name' => 'sometimes|string|max:255',
+                'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
+                'jenis_kelamin' => 'sometimes|string|in:Laki-laki,Perempuan',
+                'photo' => 'sometimes|string', // base64 encoded image
+            ]);
+
+            if ($request->has('name')) {
+                $user->name = $request->name;
+            }
+            if ($request->has('email')) {
+                $user->email = $request->email;
+            }
+            if ($request->has('jenis_kelamin')) {
+                $user->jenis_kelamin = $request->jenis_kelamin;
+            }
+
+            // Handle photo upload (base64)
+            if ($request->has('photo') && !empty($request->photo)) {
+                $base64 = $request->photo;
+                // Remove data URI prefix if present
+                if (preg_match('/^data:image\/(\w+);base64,/', $base64, $matches)) {
+                    $ext = $matches[1];
+                    $base64 = substr($base64, strpos($base64, ',') + 1);
+                } else {
+                    $ext = 'png';
+                }
+                $imageData = base64_decode($base64);
+                if ($imageData === false) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Format foto tidak valid'
+                    ], 422);
+                }
+
+                // Delete old photo
+                if ($user->photo) {
+                    $oldPath = public_path('photo/' . $user->photo);
+                    if (file_exists($oldPath)) {
+                        @unlink($oldPath);
+                    }
+                }
+
+                $filename = 'profile_' . $user->id . '_' . time() . '.' . $ext;
+                $photoDir = public_path('photo');
+                if (!is_dir($photoDir)) {
+                    mkdir($photoDir, 0755, true);
+                }
+                file_put_contents($photoDir . '/' . $filename, $imageData);
+                $user->photo = $filename;
+            }
+
+            $user->save();
+
+            // Return updated user data
+            $updatedUser = User::leftJoin('departemen', 'departemen.id', '=', 'users.departemen_id')
+                ->leftJoin('role', 'role.id', '=', 'users.role_id')
+                ->where('users.id', $user->id)
+                ->select(
+                    'users.id as id',
+                    'users.kode',
+                    'email',
+                    'username',
+                    'name',
+                    'jenis_kelamin',
+                    'photo',
+                    'departemen.nama as jabatan',
+                    'role.akses as role',
+                    'role.id as role_id'
+                )->first();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Profil berhasil diperbarui',
+                'data' => $updatedUser
+            ]);
+        } catch (\Throwable $th) {
+            Log::error('Update profile error: ' . $th->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal memperbarui profil: ' . $th->getMessage()
+            ], 500);
+        }
+    }
