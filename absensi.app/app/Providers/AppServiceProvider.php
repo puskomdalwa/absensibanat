@@ -35,6 +35,13 @@ class AppServiceProvider extends ServiceProvider
         
         Carbon::setLocale('id');
 
+        // Share $showNominal and $nominalMode across all views
+        View::composer('*', function ($view) {
+            $user = \Illuminate\Support\Facades\Auth::user();
+            $view->with('showNominal', \App\Models\Setting::isNominalVisible($user));
+            $view->with('nominalMode', \App\Models\Setting::getNominalDisplayMode());
+        });
+
         if (!app()->runningInConsole()) {
             $host = request()->getHost();
             $isLocal = in_array($host, ['localhost', '127.0.0.1', '::1'])

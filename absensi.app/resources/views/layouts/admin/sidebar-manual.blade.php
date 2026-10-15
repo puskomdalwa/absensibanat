@@ -168,6 +168,13 @@
                     <div data-i18n="API Client">API Client</div>
                 </a>
             </li>
+            <!-- Pengaturan Sistem -->
+            <li class="menu-item {{ request()->routeIs('admin.setting*') ? 'active' : '' }}">
+                <a href="{{ route('admin.setting.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ti ti-settings"></i>
+                    <div data-i18n="Pengaturan Sistem">Pengaturan Sistem</div>
+                </a>
+            </li>
         @endif
 
         <!-- ================================================================ -->

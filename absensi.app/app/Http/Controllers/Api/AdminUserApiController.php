@@ -8,6 +8,7 @@ use App\Models\Absensi;
 use App\Models\Departemen;
 use App\Models\Kategori;
 use App\Models\Role;
+use App\Models\Setting;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -209,7 +210,7 @@ class AdminUserApiController extends Controller
         $filename = 'Detail_Absensi_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $user->name) . '_' . date('Ymd_His') . '.xlsx';
 
         return Excel::download(
-            new UserAbsensiDetailExport($report),
+            new UserAbsensiDetailExport($report, $report['show_nominal'] ?? Setting::isNominalVisible($authUser)),
             $filename
         );
     }
@@ -262,6 +263,7 @@ class AdminUserApiController extends Controller
         }
 
         $rows = $query->orderBy('absensi.tgl_absen', 'desc')->get();
+        $showNominal = Setting::isNominalVisible($request->user());
 
         // Kategori list
         $kategoriList = Kategori::orderBy('kode')->get();
@@ -271,11 +273,11 @@ class AdminUserApiController extends Controller
                 'id' => $k->id,
                 'kode' => $k->kode,
                 'nama' => $k->nama,
-                'nominal_per_absensi' => (float)$k->nominal,
-                'nominal_per_absensi_formatted' => 'Rp ' . number_format((float)$k->nominal, 0, ',', '.'),
+                'nominal_per_absensi' => $showNominal ? (float)$k->nominal : 0,
+                'nominal_per_absensi_formatted' => $showNominal ? ('Rp ' . number_format((float)$k->nominal, 0, ',', '.')) : '-',
                 'total_absensi' => 0,
                 'total_nominal' => 0,
-                'total_nominal_formatted' => 'Rp 0',
+                'total_nominal_formatted' => $showNominal ? 'Rp 0' : '-',
                 'total_menit' => 0,
                 'durasi_teks' => '-',
             ];
@@ -381,8 +383,8 @@ class AdminUserApiController extends Controller
                 'kategori_nama' => $kategoriNama,
                 'durasi_menit' => $menit,
                 'durasi_teks' => $durasiTeks,
-                'nominal' => $nominal,
-                'nominal_formatted' => 'Rp ' . number_format($nominal, 0, ',', '.'),
+                'nominal' => $showNominal ? $nominal : 0,
+                'nominal_formatted' => $showNominal ? ('Rp ' . number_format($nominal, 0, ',', '.')) : '-',
                 'keterangan' => $row->keterangan ?: '-',
                 'keterangans_count' => count($rowKeterangans),
                 'keterangans' => $rowKeterangans,
@@ -395,7 +397,11 @@ class AdminUserApiController extends Controller
 
         // Format summary totals
         foreach ($summaryByCategory as $key => &$item) {
-            $item['total_nominal_formatted'] = 'Rp ' . number_format($item['total_nominal'], 0, ',', '.');
+            $item['total_nominal_formatted'] = $showNominal ? ('Rp ' . number_format($item['total_nominal'], 0, ',', '.')) : '-';
+            if (! $showNominal) {
+                $item['nominal_per_absensi'] = 0;
+                $item['total_nominal'] = 0;
+            }
             $h = floor($item['total_menit'] / 60);
             $m = $item['total_menit'] % 60;
             $item['durasi_teks'] = $item['total_menit'] > 0 ? "{$h}j {$m}m" : '-';
@@ -405,7 +411,7 @@ class AdminUserApiController extends Controller
         $totMins = $totalMenit % 60;
         $totalDurasiTeks = $totalMenit > 0 ? "{$totHours}j {$totMins}m" : '-';
         $totalCount = count($rows);
-        $rataNominal = $totalCount > 0 ? round($totalNominal / $totalCount) : 0;
+        $rataNominal = ($showNominal && $totalCount > 0) ? round($totalNominal / $totalCount) : 0;
 
         $periodLabel = 'Semua Periode';
         if ($filterType === 'bulan_tahun' && $bulan !== '*' && $tahun !== '*') {
@@ -418,17 +424,18 @@ class AdminUserApiController extends Controller
             'period_label' => $periodLabel,
             'summary' => [
                 'total_absensi' => $totalCount,
-                'total_nominal' => $totalNominal,
-                'total_nominal_formatted' => 'Rp ' . number_format($totalNominal, 0, ',', '.'),
+                'total_nominal' => $showNominal ? $totalNominal : 0,
+                'total_nominal_formatted' => $showNominal ? ('Rp ' . number_format($totalNominal, 0, ',', '.')) : '-',
                 'total_menit' => $totalMenit,
                 'total_durasi_teks' => $totalDurasiTeks,
                 'rata_nominal' => $rataNominal,
-                'rata_nominal_formatted' => 'Rp ' . number_format($rataNominal, 0, ',', '.'),
+                'rata_nominal_formatted' => ($showNominal && $totalCount > 0) ? ('Rp ' . number_format($rataNominal, 0, ',', '.')) : '-',
             ],
             'categories' => array_values($summaryByCategory),
             'daily' => $daily,
             'details' => $details,
             'user' => $user,
+            'show_nominal' => $showNominal,
         ];
     }
 }

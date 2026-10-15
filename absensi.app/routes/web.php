@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\KategoriController;
 use App\Http\Controllers\Admin\ApiClientController;
 use App\Http\Controllers\Admin\TypeController;
 use App\Http\Controllers\Admin\FingerspotController;
+use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\LaporanController;
 
 /*
@@ -225,6 +226,12 @@ Route::prefix('admin')->middleware(['auth', 'role:admin,staff'])->group(function
 
         // API Playground & Tester
         Route::post('/api/test', [FingerspotController::class, 'testApi'])->name('admin.fingerspot.api.test');
+    });
+
+    Route::prefix('setting')->middleware('role:superadmin')->group(function () {
+        Route::get('/', [SettingController::class, 'index'])->name('admin.setting.index');
+        Route::post('/nominal', [SettingController::class, 'updateNominal'])->name('admin.setting.nominal.update');
+        Route::post('/nominal/toggle', [SettingController::class, 'toggleNominal'])->name('admin.setting.nominal.toggle');
     });
 });
 

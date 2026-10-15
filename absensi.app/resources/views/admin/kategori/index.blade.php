@@ -23,6 +23,28 @@
         </div>
     </div>
 
+    @if (($nominalMode ?? 'show') === 'hide')
+        <div class="alert alert-danger d-flex align-items-center mb-4" role="alert" style="border-radius: 14px;">
+            <i class="ti ti-eye-off fs-4 me-2"></i>
+            <div class="flex-grow-1">
+                <strong>Status Nominal Sistem: DISEMBUNYIKAN.</strong> Nominal honorarium saat ini disembunyikan untuk semua pengguna di semua halaman laporan dan dokumen export.
+            </div>
+            @if (Auth::user() && Auth::user()->isSuperAdmin())
+                <a href="{{ route('admin.setting.index') }}" class="btn btn-sm btn-outline-danger ms-3">Ubah di Pengaturan</a>
+            @endif
+        </div>
+    @elseif (($nominalMode ?? 'show') === 'admin_only')
+        <div class="alert alert-warning d-flex align-items-center mb-4" role="alert" style="border-radius: 14px;">
+            <i class="ti ti-shield-lock fs-4 me-2"></i>
+            <div class="flex-grow-1">
+                <strong>Status Nominal Sistem: KHUSUS ADMIN.</strong> Nominal honorarium disembunyikan untuk civitas biasa, dan hanya ditampilkan untuk Admin & Superadmin.
+            </div>
+            @if (Auth::user() && Auth::user()->isSuperAdmin())
+                <a href="{{ route('admin.setting.index') }}" class="btn btn-sm btn-outline-warning ms-3">Ubah di Pengaturan</a>
+            @endif
+        </div>
+    @endif
+
     @php($isStaff = false)
     <div class="card shadow-sm border-0" id="card-kategori" style="border-radius: 20px; border: 1px solid rgba(251, 113, 133, 0.2) !important;">
         <div class="card-datatable table-responsive pt-0">

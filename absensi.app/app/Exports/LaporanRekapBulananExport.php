@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Models\Setting;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -15,15 +16,17 @@ class LaporanRekapBulananExport implements FromArray, ShouldAutoSize, WithStyles
     private $rekap;
     private $categories;
     private $filters;
+    private $showNominal;
     private $headerRowCount = 0;
     private $tableStartRow = 0;
     private $totalRowIndex = 0;
 
-    public function __construct(array $rekap, $categories, array $filters)
+    public function __construct(array $rekap, $categories, array $filters, ?bool $showNominal = null)
     {
         $this->rekap = $rekap;
         $this->categories = $categories;
         $this->filters = $filters;
+        $this->showNominal = $showNominal ?? ($rekap['show_nominal'] ?? Setting::isNominalVisible());
     }
 
     public function array(): array
@@ -31,7 +34,7 @@ class LaporanRekapBulananExport implements FromArray, ShouldAutoSize, WithStyles
         $rows = [];
 
         // 1. Title Banner
-        $rows[] = ['REKAPITULASI PRESENSI & PEMASUKAN BANAT UII DALWA'];
+        $rows[] = ['REKAPITULASI PRESENSI ' . ($this->showNominal ? '& PEMASUKAN ' : '') . 'BANAT UII DALWA'];
         $rows[] = [$this->rekap['title'] ?? 'REKAP BULANAN'];
         $rows[] = [];
 
@@ -41,17 +44,23 @@ class LaporanRekapBulananExport implements FromArray, ShouldAutoSize, WithStyles
         $rows[] = ['Kategori', $this->filters['kategori_nama'] ?? 'Semua Kategori'];
         $rows[] = ['Waktu Unduh', now()->translatedFormat('d F Y H:i:s') . ' WIB'];
         $rows[] = ['Total Kehadiran', ($this->rekap['total_presensi'] ?? 0) . ' Santri/Staf'];
-        $rows[] = ['Total Nominal', $this->rekap['total_nominal_formatted'] ?? 'Rp 0'];
+        if ($this->showNominal) {
+            $rows[] = ['Total Nominal', $this->rekap['total_nominal_formatted'] ?? 'Rp 0'];
+        }
         $rows[] = [];
 
         // 3. Table Column Headers
         $tableHeaders = ['No', 'Tanggal'];
         foreach ($this->categories as $cat) {
             $tableHeaders[] = $cat->kode . ' (Jml)';
-            $tableHeaders[] = $cat->kode . ' (Rp)';
+            if ($this->showNominal) {
+                $tableHeaders[] = $cat->kode . ' (Rp)';
+            }
         }
         $tableHeaders[] = 'Total Kehadiran';
-        $tableHeaders[] = 'Total Nominal (Rp)';
+        if ($this->showNominal) {
+            $tableHeaders[] = 'Total Nominal (Rp)';
+        }
 
         $rows[] = $tableHeaders;
         $this->tableStartRow = count($rows);
@@ -79,7 +88,9 @@ class LaporanRekapBulananExport implements FromArray, ShouldAutoSize, WithStyles
                 $amount = $val && $val['amount'] !== null ? (float)$val['amount'] : 0;
 
                 $row[] = $count > 0 ? $count : '-';
-                $row[] = $amount > 0 ? number_format($amount, 0, ',', '.') : '-';
+                if ($this->showNominal) {
+                    $row[] = $amount > 0 ? number_format($amount, 0, ',', '.') : '-';
+                }
 
                 $dailyTotalCount += $count;
                 $dailyTotalAmount += $amount;
@@ -89,7 +100,9 @@ class LaporanRekapBulananExport implements FromArray, ShouldAutoSize, WithStyles
             }
 
             $row[] = $dailyTotalCount > 0 ? $dailyTotalCount : '-';
-            $row[] = $dailyTotalAmount > 0 ? number_format($dailyTotalAmount, 0, ',', '.') : '-';
+            if ($this->showNominal) {
+                $row[] = $dailyTotalAmount > 0 ? number_format($dailyTotalAmount, 0, ',', '.') : '-';
+            }
 
             $grandTotalCount += $dailyTotalCount;
             $grandTotalAmount += $dailyTotalAmount;
@@ -102,10 +115,14 @@ class LaporanRekapBulananExport implements FromArray, ShouldAutoSize, WithStyles
         foreach ($this->categories as $cat) {
             $tot = $categoryTotals[$cat->id];
             $footerRow[] = $tot['count'] > 0 ? $tot['count'] : 0;
-            $footerRow[] = $tot['amount'] > 0 ? number_format($tot['amount'], 0, ',', '.') : '0';
+            if ($this->showNominal) {
+                $footerRow[] = $tot['amount'] > 0 ? number_format($tot['amount'], 0, ',', '.') : '0';
+            }
         }
         $footerRow[] = $grandTotalCount;
-        $footerRow[] = number_format($grandTotalAmount, 0, ',', '.');
+        if ($this->showNominal) {
+            $footerRow[] = number_format($grandTotalAmount, 0, ',', '.');
+        }
 
         $rows[] = $footerRow;
         $this->totalRowIndex = count($rows);
@@ -115,7 +132,10 @@ class LaporanRekapBulananExport implements FromArray, ShouldAutoSize, WithStyles
 
     public function styles(Worksheet $sheet)
     {
-        $lastCol = $this->getColumnLetter(2 + count($this->categories) * 2 + 2);
+        $colsPerCat = $this->showNominal ? 2 : 1;
+        $extraCols = $this->showNominal ? 2 : 1;
+        $totalCols = 2 + (count($this->categories) * $colsPerCat) + $extraCols;
+        $lastCol = $this->getColumnLetter($totalCols);
 
         // Title styling
         $sheet->mergeCells("A1:{$lastCol}1");

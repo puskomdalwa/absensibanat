@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Absensi;
 use App\Models\Departemen;
 use App\Models\Kategori;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -73,7 +74,7 @@ class LaporanApiController extends Controller
             'kategori_nama' => $katNama,
         ];
 
-        $export = new LaporanRekapBulananExport($data, $data['category_models'], $filters);
+        $export = new LaporanRekapBulananExport($data, $data['category_models'], $filters, $data['show_nominal'] ?? Setting::isNominalVisible());
 
         // Jika klien meminta base64 (untuk web / in-memory download)
         if ($request->input('format') === 'base64') {
@@ -185,8 +186,10 @@ class LaporanApiController extends Controller
             $grandTotalNominal += $dailyTotalAmount;
         }
 
+        $showNominal = Setting::isNominalVisible(Auth::user());
+
         foreach ($categoryTotals as $id => $tot) {
-            $categoryTotals[$id]['amount_formatted'] = 'Rp ' . number_format($tot['amount'], 0, ',', '.');
+            $categoryTotals[$id]['amount_formatted'] = $showNominal ? 'Rp ' . number_format($tot['amount'], 0, ',', '.') : '-';
         }
 
         $namaBulanIndonesia = [
@@ -196,21 +199,24 @@ class LaporanApiController extends Controller
         ];
 
         $bulanNama = $namaBulanIndonesia[$tanggalAwal->month] ?? strtoupper($tanggalAwal->format('F'));
-        $title = 'PEMASUKAN TUNAI BULAN ' . $bulanNama . ' ' . $tanggalAwal->year;
+        $title = $showNominal
+            ? 'PEMASUKAN TUNAI BULAN ' . $bulanNama . ' ' . $tanggalAwal->year
+            : 'REKAPITULASI PRESENSI BULAN ' . $bulanNama . ' ' . $tanggalAwal->year;
         $periodLabel = ucfirst(strtolower($bulanNama)) . ' ' . $tanggalAwal->year;
 
         return [
             'title' => $title,
             'period_label' => $periodLabel,
             'total_presensi' => $grandTotalPresensi,
-            'total_nominal' => $grandTotalNominal,
-            'total_nominal_formatted' => 'Rp ' . number_format($grandTotalNominal, 0, ',', '.'),
-            'categories' => $kategori->map(function ($item) {
+            'total_nominal' => $showNominal ? $grandTotalNominal : 0,
+            'total_nominal_formatted' => $showNominal ? 'Rp ' . number_format($grandTotalNominal, 0, ',', '.') : '-',
+            'show_nominal' => $showNominal,
+            'categories' => $kategori->map(function ($item) use ($showNominal) {
                 return [
                     'id' => $item->id,
                     'nama' => $item->nama,
                     'kode' => $item->kode,
-                    'nominal' => (float)$item->nominal,
+                    'nominal' => $showNominal ? (float)$item->nominal : 0,
                 ];
             })->values(),
             'category_models' => $kategori,

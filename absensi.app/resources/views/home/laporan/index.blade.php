@@ -105,7 +105,7 @@
                     <h4 class="mb-1" style="font-weight: 700; color: var(--banat-text-dark);">
                         <i class="fa-solid fa-table-list me-2" style="color: var(--banat-primary);"></i> Data Rekapitulasi Presensi
                     </h4>
-                    <p class="text-muted font-sm mb-0">Daftar kehadiran, kalkulasi durasi jam kerja efektif, dan nominal honorarium.</p>
+                    <p class="text-muted font-sm mb-0">Daftar kehadiran dan kalkulasi durasi jam kerja efektif{{ ($showNominal ?? true) ? ', dan nominal honorarium' : '' }}.</p>
                 </div>
                 <div>
                     <span class="badge" style="background: rgba(224, 82, 117, 0.1); color: var(--banat-primary); border: 1px solid var(--banat-border); border-radius: 30px; padding: 6px 14px; font-weight: 600; font-size: 0.82rem;">
@@ -125,7 +125,9 @@
                             <th class="text-center">Jam Pulang</th>
                             <th class="text-center">Kategori</th>
                             <th class="text-center">Durasi Efektif</th>
-                            <th class="text-center">Nominal</th>
+                            @if ($showNominal ?? true)
+                                <th class="text-center">Nominal</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -212,7 +214,7 @@
                 searchable: false, 
                 orderable: false, 
                 class: "text-center fw-600" 
-            },
+            }@if ($showNominal ?? true),
             { 
                 data: "kategori_nominal", 
                 name: "kategori.nominal", 
@@ -221,6 +223,7 @@
                     return data ? '<span style="color: var(--banat-primary); font-weight: 700;">' + data + '</span>' : '<span class="text-muted">-</span>';
                 }
             }
+            @endif
         ],
         order: [[1, "desc"]]
     });

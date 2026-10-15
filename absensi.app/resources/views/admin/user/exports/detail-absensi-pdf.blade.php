@@ -197,24 +197,32 @@
         </tr>
     </table>
 
+    @php
+        $showNominal = $showNominal ?? ($report['show_nominal'] ?? true);
+    @endphp
+
     <table class="summary-table">
         <tr>
-            <td>
+            <td style="width: {{ $showNominal ? '25%' : '50%' }};">
                 <div class="summary-label">Total Absensi</div>
                 <div class="summary-value">{{ number_format($report['summary']['total_absensi'], 0, ',', '.') }}</div>
             </td>
-            <td>
-                <div class="summary-label">Total Nominal</div>
-                <div class="summary-value">{{ $report['summary']['total_nominal_formatted'] }}</div>
-            </td>
-            <td>
+            @if ($showNominal)
+                <td style="width: 25%;">
+                    <div class="summary-label">Total Nominal</div>
+                    <div class="summary-value">{{ $report['summary']['total_nominal_formatted'] }}</div>
+                </td>
+            @endif
+            <td style="width: {{ $showNominal ? '25%' : '50%' }};">
                 <div class="summary-label">Total Durasi</div>
                 <div class="summary-value">{{ $report['summary']['total_durasi_teks'] }}</div>
             </td>
-            <td>
-                <div class="summary-label">Rata-rata</div>
-                <div class="summary-value">{{ $report['summary']['rata_nominal_formatted'] }}</div>
-            </td>
+            @if ($showNominal)
+                <td style="width: 25%;">
+                    <div class="summary-label">Rata-rata</div>
+                    <div class="summary-value">{{ $report['summary']['rata_nominal_formatted'] }}</div>
+                </td>
+            @endif
         </tr>
     </table>
 
@@ -223,24 +231,32 @@
         <thead>
             <tr>
                 <th>Kategori</th>
-                <th class="right">Nominal Satuan</th>
+                @if ($showNominal)
+                    <th class="right">Nominal Satuan</th>
+                @endif
                 <th class="right">Jumlah Absensi</th>
                 <th class="right">Total Durasi</th>
-                <th class="right">Total Nominal</th>
+                @if ($showNominal)
+                    <th class="right">Total Nominal</th>
+                @endif
             </tr>
         </thead>
         <tbody>
             @forelse ($report['categories'] as $category)
                 <tr>
                     <td><span class="badge">{{ $category['kode'] }}</span> {{ $category['nama'] }}</td>
-                    <td class="right nowrap">{{ $category['nominal_per_absensi_formatted'] }}</td>
+                    @if ($showNominal)
+                        <td class="right nowrap">{{ $category['nominal_per_absensi_formatted'] }}</td>
+                    @endif
                     <td class="right">{{ number_format($category['total_absensi'], 0, ',', '.') }}</td>
                     <td class="right nowrap">{{ $category['durasi_teks'] }}</td>
-                    <td class="right nowrap"><strong>{{ $category['total_nominal_formatted'] }}</strong></td>
+                    @if ($showNominal)
+                        <td class="right nowrap"><strong>{{ $category['total_nominal_formatted'] }}</strong></td>
+                    @endif
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="center muted">Tidak ada data</td>
+                    <td colspan="{{ $showNominal ? '5' : '3' }}" class="center muted">Tidak ada data</td>
                 </tr>
             @endforelse
         </tbody>
@@ -256,7 +272,9 @@
                 <th class="nowrap">Pulang</th>
                 <th>Kategori</th>
                 <th class="nowrap">Durasi</th>
-                <th class="right nowrap">Nominal</th>
+                @if ($showNominal)
+                    <th class="right nowrap">Nominal</th>
+                @endif
                 <th>Keterangan</th>
             </tr>
         </thead>
@@ -269,12 +287,14 @@
                     <td class="center nowrap">{{ $detail['jam_pulang'] }}</td>
                     <td>{{ $detail['kategori'] }}</td>
                     <td class="right nowrap">{{ $detail['durasi_teks'] }}</td>
-                    <td class="right nowrap"><strong>{{ $detail['nominal_formatted'] }}</strong></td>
+                    @if ($showNominal)
+                        <td class="right nowrap"><strong>{{ $detail['nominal_formatted'] }}</strong></td>
+                    @endif
                     <td>{{ $detail['keterangan'] }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="center muted">Tidak ada data</td>
+                    <td colspan="{{ $showNominal ? '8' : '7' }}" class="center muted">Tidak ada data</td>
                 </tr>
             @endforelse
         </tbody>

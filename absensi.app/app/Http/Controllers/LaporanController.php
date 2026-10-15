@@ -8,6 +8,7 @@ use App\Models\Absensi;
 use App\Models\Departemen;
 use App\Models\Device;
 use App\Models\Kategori;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\Verify;
 use Carbon\Carbon;
@@ -104,8 +105,15 @@ class LaporanController extends Controller
             ];
         }
 
+        $showNominal = Setting::isNominalVisible(Auth::user());
+        $bulanTitle = $this->namaBulan($tanggalAwal->month) . ' ' . $tanggalAwal->year;
+        $title = $showNominal
+            ? 'PEMASUKAN TUNAI BULAN ' . $bulanTitle
+            : 'REKAPITULASI PRESENSI BULAN ' . $bulanTitle;
+
         return [
-            'title' => 'PEMASUKAN TUNAI BULAN ' . $this->namaBulan($tanggalAwal->month) . ' ' . $tanggalAwal->year,
+            'title' => $title,
+            'show_nominal' => $showNominal,
             'categories' => $kategori->map(function ($item) {
                 return [
                     'id' => $item->id,
@@ -164,6 +172,7 @@ class LaporanController extends Controller
             'summary' => $report['summary'],
             'categories' => $report['categories'],
             'daily' => $report['daily'],
+            'show_nominal' => $report['show_nominal'],
         ]);
     }
 
@@ -184,7 +193,7 @@ class LaporanController extends Controller
         $report = $this->userAbsensiReport($user, $request);
 
         return Excel::download(
-            new UserAbsensiDetailExport($report),
+            new UserAbsensiDetailExport($report, $report['show_nominal']),
             $this->userAbsensiExportFilename($user, $request, 'xlsx')
         );
     }
@@ -194,13 +203,14 @@ class LaporanController extends Controller
         $this->authorizeDetailAccess($user);
 
         $report = $this->userAbsensiReport($user, $request);
+        $showNominal = $report['show_nominal'];
 
         $options = new Options();
         $options->set('defaultFont', 'DejaVu Sans');
         $options->set('isRemoteEnabled', true);
 
         $dompdf = new Dompdf($options);
-        $dompdf->loadHtml(view('admin.user.exports.detail-absensi-pdf', compact('report'))->render());
+        $dompdf->loadHtml(view('admin.user.exports.detail-absensi-pdf', compact('report', 'showNominal'))->render());
         $dompdf->setPaper('a4', 'landscape');
         $dompdf->render();
 
@@ -251,6 +261,10 @@ class LaporanController extends Controller
                 return $row->kategori_nama ?: '-';
             })
             ->editColumn('kategori_nominal', function ($row) {
+                if (! Setting::isNominalVisible(Auth::user())) {
+                    return '-';
+                }
+
                 return $row->kategori_nominal !== null ? $this->formatRupiah((float) $row->kategori_nominal) : '-';
             })
             ->addColumn('durasi_efektif', function ($row) {
@@ -357,20 +371,21 @@ class LaporanController extends Controller
 
     private function userAbsensiReport(User $user, Request $request): array
     {
+        $showNominal = Setting::isNominalVisible(Auth::user());
         $rows = $this->queryUserAbsensiRows($user, $request)->get();
         $kategori = $this->kategoriOptions();
 
-        $summaryByCategory = $kategori->mapWithKeys(function ($item) {
+        $summaryByCategory = $kategori->mapWithKeys(function ($item) use ($showNominal) {
             return [
                 $item->id => [
                     'id' => $item->id,
                     'kode' => $item->kode,
                     'nama' => $item->nama,
-                    'nominal_per_absensi' => (float) $item->nominal,
-                    'nominal_per_absensi_formatted' => $this->formatRupiah((float) $item->nominal),
+                    'nominal_per_absensi' => $showNominal ? (float) $item->nominal : 0,
+                    'nominal_per_absensi_formatted' => $showNominal ? $this->formatRupiah((float) $item->nominal) : '-',
                     'total_absensi' => 0,
                     'total_nominal' => 0,
-                    'total_nominal_formatted' => $this->formatRupiah(0),
+                    'total_nominal_formatted' => $showNominal ? $this->formatRupiah(0) : '-',
                     'total_menit' => 0,
                     'durasi_teks' => '-',
                 ],
@@ -392,11 +407,11 @@ class LaporanController extends Controller
                     'id' => $row->kategori_id,
                     'kode' => $row->kategori_kode ?: '-',
                     'nama' => $row->kategori_nama ?: 'Tanpa Kategori',
-                    'nominal_per_absensi' => $nominal,
-                    'nominal_per_absensi_formatted' => $this->formatRupiah($nominal),
+                    'nominal_per_absensi' => $showNominal ? $nominal : 0,
+                    'nominal_per_absensi_formatted' => $showNominal ? $this->formatRupiah($nominal) : '-',
                     'total_absensi' => 0,
                     'total_nominal' => 0,
-                    'total_nominal_formatted' => $this->formatRupiah(0),
+                    'total_nominal_formatted' => $showNominal ? $this->formatRupiah(0) : '-',
                     'total_menit' => 0,
                     'durasi_teks' => '-',
                 ];
@@ -432,8 +447,8 @@ class LaporanController extends Controller
                 'kategori' => trim(($row->kategori_kode ?: '-') . ' - ' . ($row->kategori_nama ?: 'Tanpa Kategori')),
                 'durasi_menit' => $menit,
                 'durasi_teks' => RealtimeAbsensi::formatMenit($menit),
-                'nominal' => $nominal,
-                'nominal_formatted' => $this->formatRupiah($nominal),
+                'nominal' => $showNominal ? $nominal : 0,
+                'nominal_formatted' => $showNominal ? $this->formatRupiah($nominal) : '-',
                 'keterangan' => $row->keterangan ?: '-',
             ];
         }
@@ -444,12 +459,24 @@ class LaporanController extends Controller
             ->filter(function ($item) {
                 return $item['total_absensi'] > 0;
             })
-            ->map(function ($item) {
-                $item['total_nominal_formatted'] = $this->formatRupiah((float) $item['total_nominal']);
+            ->map(function ($item) use ($showNominal) {
+                $item['nominal_per_absensi_formatted'] = $showNominal ? $this->formatRupiah((float) $item['nominal_per_absensi']) : '-';
+                $item['total_nominal_formatted'] = $showNominal ? $this->formatRupiah((float) $item['total_nominal']) : '-';
+                if (! $showNominal) {
+                    $item['nominal_per_absensi'] = 0;
+                    $item['total_nominal'] = 0;
+                }
                 $item['durasi_teks'] = RealtimeAbsensi::formatMenit((int) $item['total_menit']);
                 return $item;
             })
             ->values();
+
+        $dailyRows = collect($daily)->map(function ($item) use ($showNominal) {
+            if (! $showNominal) {
+                $item['total_nominal'] = 0;
+            }
+            return $item;
+        })->values()->all();
 
         $totalAbsensi = $rows->count();
 
@@ -458,16 +485,17 @@ class LaporanController extends Controller
             'period_label' => $this->laporanPeriodLabel($request),
             'summary' => [
                 'total_absensi' => $totalAbsensi,
-                'total_nominal' => $totalNominal,
-                'total_nominal_formatted' => $this->formatRupiah($totalNominal),
+                'total_nominal' => $showNominal ? $totalNominal : 0,
+                'total_nominal_formatted' => $showNominal ? $this->formatRupiah($totalNominal) : '-',
                 'total_durasi_menit' => $totalMenit,
                 'total_durasi_teks' => RealtimeAbsensi::formatMenit($totalMenit),
-                'rata_nominal' => $totalAbsensi > 0 ? $totalNominal / $totalAbsensi : 0,
-                'rata_nominal_formatted' => $this->formatRupiah($totalAbsensi > 0 ? $totalNominal / $totalAbsensi : 0),
+                'rata_nominal' => ($showNominal && $totalAbsensi > 0) ? $totalNominal / $totalAbsensi : 0,
+                'rata_nominal_formatted' => ($showNominal && $totalAbsensi > 0) ? $this->formatRupiah($totalNominal / $totalAbsensi) : '-',
             ],
             'categories' => $categoryRows,
-            'daily' => array_values($daily),
+            'daily' => $dailyRows,
             'details' => $details,
+            'show_nominal' => $showNominal,
         ];
     }
 

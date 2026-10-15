@@ -184,7 +184,7 @@
     </div>
 
     <div class="row g-4 mb-4">
-        <div class="col-sm-6 col-xl-3">
+        <div class="{{ ($showNominal ?? true) ? 'col-sm-6 col-xl-3' : 'col-sm-6 col-xl-6' }}">
             <div class="card h-100">
                 <div class="card-body d-flex align-items-center gap-3">
                     <span class="summary-icon bg-label-primary"><i class="ti ti-calendar-check"></i></span>
@@ -195,18 +195,20 @@
                 </div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <span class="summary-icon bg-label-success"><i class="ti ti-cash"></i></span>
-                    <div>
-                        <div class="summary-value" id="totalNominal">Rp 0</div>
-                        <div class="summary-label">Total Nominal</div>
+        @if ($showNominal ?? true)
+            <div class="col-sm-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <span class="summary-icon bg-label-success"><i class="ti ti-cash"></i></span>
+                        <div>
+                            <div class="summary-value" id="totalNominal">Rp 0</div>
+                            <div class="summary-label">Total Nominal</div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="col-sm-6 col-xl-3">
+        @endif
+        <div class="{{ ($showNominal ?? true) ? 'col-sm-6 col-xl-3' : 'col-sm-6 col-xl-6' }}">
             <div class="card h-100">
                 <div class="card-body d-flex align-items-center gap-3">
                     <span class="summary-icon bg-label-info"><i class="ti ti-clock-hour-4"></i></span>
@@ -217,24 +219,26 @@
                 </div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <span class="summary-icon bg-label-warning"><i class="ti ti-calculator"></i></span>
-                    <div>
-                        <div class="summary-value" id="rataNominal">Rp 0</div>
-                        <div class="summary-label">Rata-rata Per Absensi</div>
+        @if ($showNominal ?? true)
+            <div class="col-sm-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <span class="summary-icon bg-label-warning"><i class="ti ti-calculator"></i></span>
+                        <div>
+                            <div class="summary-value" id="rataNominal">Rp 0</div>
+                            <div class="summary-label">Rata-rata Per Absensi</div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        @endif
     </div>
 
     <div class="row g-4 mb-4">
         <div class="col-xl-8">
             <div class="card h-100">
                 <div class="card-header d-flex align-items-center justify-content-between">
-                    <h5 class="mb-0">Nominal Per Tanggal</h5>
+                    <h5 class="mb-0" id="daily-chart-title">{{ ($showNominal ?? true) ? 'Nominal Per Tanggal' : 'Jumlah Kehadiran Per Tanggal' }}</h5>
                 </div>
                 <div class="card-body">
                     <div id="dailyNominalChart" class="chart-box"></div>
@@ -244,7 +248,7 @@
         <div class="col-xl-4">
             <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="mb-0">Nominal Per Kategori</h5>
+                    <h5 class="mb-0" id="category-chart-title">{{ ($showNominal ?? true) ? 'Nominal Per Kategori' : 'Distribusi Kategori Presensi' }}</h5>
                 </div>
                 <div class="card-body">
                     <div id="categoryChart" class="chart-box"></div>
@@ -262,15 +266,19 @@
                 <thead>
                     <tr>
                         <th>Kategori</th>
-                        <th class="text-end">Nominal Satuan</th>
+                        @if ($showNominal ?? true)
+                            <th class="text-end">Nominal Satuan</th>
+                        @endif
                         <th class="text-end">Jumlah Absensi</th>
                         <th class="text-end">Total Durasi</th>
-                        <th class="text-end">Total Nominal</th>
+                        @if ($showNominal ?? true)
+                            <th class="text-end">Total Nominal</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td colspan="5" class="text-center text-muted">Memuat data...</td>
+                        <td colspan="{{ ($showNominal ?? true) ? 5 : 3 }}" class="text-center text-muted">Memuat data...</td>
                     </tr>
                 </tbody>
             </table>
@@ -291,7 +299,9 @@
                         <th>Pulang</th>
                         <th>Kategori</th>
                         <th>Durasi Efektif</th>
-                        <th>Nominal</th>
+                        @if ($showNominal ?? true)
+                            <th>Nominal</th>
+                        @endif
                         <th>Keterangan</th>
                         @unless ($isStaff)
                             <th>Action</th>
@@ -322,6 +332,8 @@
                 kategori_id: $('#kategori_id').val() || '*',
             };
         }
+
+        const isNominalVisible = {{ ($showNominal ?? true) ? 'true' : 'false' }};
 
         function formatRupiah(value) {
             return 'Rp ' + Number(value || 0).toLocaleString('id-ID');
@@ -354,9 +366,9 @@
                     toolbar: { show: false }
                 },
                 series: [{
-                    name: 'Nominal',
+                    name: isNominalVisible ? 'Nominal' : 'Kehadiran',
                     data: rows.map(function(row) {
-                        return row.total_nominal;
+                        return isNominalVisible ? row.total_nominal : row.total_absensi;
                     })
                 }],
                 xaxis: {
@@ -367,14 +379,14 @@
                 yaxis: {
                     labels: {
                         formatter: function(value) {
-                            return formatRupiah(value);
+                            return isNominalVisible ? formatRupiah(value) : (Math.round(value) + 'x');
                         }
                     }
                 },
                 tooltip: {
                     y: {
                         formatter: function(value) {
-                            return formatRupiah(value);
+                            return isNominalVisible ? formatRupiah(value) : (value + ' presensi');
                         }
                     }
                 },
@@ -411,7 +423,7 @@
                     return row.kode + ' - ' + row.nama;
                 }),
                 series: rows.map(function(row) {
-                    return row.total_nominal;
+                    return isNominalVisible ? row.total_nominal : row.total_absensi;
                 }),
                 legend: {
                     position: 'bottom'
@@ -419,7 +431,7 @@
                 tooltip: {
                     y: {
                         formatter: function(value) {
-                            return formatRupiah(value);
+                            return isNominalVisible ? formatRupiah(value) : (value + ' presensi');
                         }
                     }
                 },
@@ -435,7 +447,8 @@
 
         function renderCategoryTable(rows) {
             if (!rows.length) {
-                $('#table-kategori-summary tbody').html('<tr><td colspan="5" class="text-center text-muted">Tidak ada data</td></tr>');
+                const colSpan = isNominalVisible ? 5 : 3;
+                $('#table-kategori-summary tbody').html(`<tr><td colspan="${colSpan}" class="text-center text-muted">Tidak ada data</td></tr>`);
                 return;
             }
 
@@ -446,10 +459,10 @@
                         <td>
                             <div class="fw-semibold">${escapeHtml(row.kode)} - ${escapeHtml(row.nama)}</div>
                         </td>
-                        <td class="text-end">${formatRupiah(row.nominal_per_absensi)}</td>
+                        ${isNominalVisible ? `<td class="text-end">${formatRupiah(row.nominal_per_absensi)}</td>` : ''}
                         <td class="text-end">${Number(row.total_absensi).toLocaleString('id-ID')}</td>
                         <td class="text-end">${row.durasi_teks || '-'}</td>
-                        <td class="text-end fw-semibold">${formatRupiah(row.total_nominal)}</td>
+                        ${isNominalVisible ? `<td class="text-end fw-semibold">${formatRupiah(row.total_nominal)}</td>` : ''}
                     </tr>
                 `;
             });
@@ -497,9 +510,11 @@
                 { data: 'pagi', name: 'absensi.pagi' },
                 { data: 'sore', name: 'absensi.sore' },
                 { data: 'kategori_nama', name: 'kategori.nama' },
-                { data: 'durasi_efektif', name: 'durasi_efektif', searchable: false, orderable: false },
-                { data: 'kategori_nominal', name: 'kategori.nominal' },
-                { data: 'keterangan', name: 'absensi.keterangan', defaultContent: '-' }
+                { data: 'durasi_efektif', name: 'durasi_efektif', searchable: false, orderable: false }
+                @if ($showNominal ?? true)
+                    , { data: 'kategori_nominal', name: 'kategori.nominal' }
+                @endif
+                , { data: 'keterangan', name: 'absensi.keterangan', defaultContent: '-' }
                 @unless ($isStaff)
                     , { data: 'action', name: 'action', searchable: false, orderable: false }
                 @endunless

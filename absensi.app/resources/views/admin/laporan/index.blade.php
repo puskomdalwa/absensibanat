@@ -211,7 +211,9 @@
                 kategori_id: $('#kategori_id').val(),
                 departemen_id: $('#departemen_id').val()
             }).done(function(response) {
+                const showNominal = response.show_nominal !== false;
                 $('#laporan-title').text(response.title);
+                $('#card-laporan .laporan-title-banner i').attr('class', showNominal ? 'ti ti-chart-bar' : 'ti ti-calendar-stats');
 
                 const selectedKategori = $('#kategori_id').val();
                 const categories = selectedKategori === '*'
@@ -222,7 +224,7 @@
 
                 let header = '<tr><th>NO</th><th>TANGGAL</th>';
                 categories.forEach(function(item) {
-                    header += `<th>${item.kode}</th>`;
+                    header += `<th>${item.kode}${showNominal ? '' : ' (Jml)'}</th>`;
                 });
                 header += '</tr>';
 
@@ -235,8 +237,12 @@
                     };
 
                     categories.forEach(function(category) {
-                        const value = row.values[category.id] || { amount: null };
-                        item['kategori_' + category.id] = formatRupiah(value.amount);
+                        const value = row.values[category.id] || { amount: null, count: 0 };
+                        if (showNominal) {
+                            item['kategori_' + category.id] = formatRupiah(value.amount);
+                        } else {
+                            item['kategori_' + category.id] = value.count > 0 ? (value.count + 'x') : '-';
+                        }
                     });
 
                     return item;
@@ -250,7 +256,7 @@
                 categories.forEach(function(category) {
                     columns.push({
                         data: 'kategori_' + category.id,
-                        className: 'text-end nominal'
+                        className: showNominal ? 'text-end nominal' : 'text-center fw-semibold'
                     });
                 });
 

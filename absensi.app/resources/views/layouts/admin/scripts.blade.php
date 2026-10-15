@@ -85,3 +85,41 @@
         });
     </script>
 @endif
+
+@if(Auth::check() && Auth::user()->isSuperAdmin())
+    <script>
+        $(document).on('click', '#navbar-quick-toggle-nominal', function(e) {
+            e.preventDefault();
+            const $btn = $(this);
+            $btn.css('pointer-events', 'none').css('opacity', '0.6');
+
+            $.ajax({
+                url: "{{ route('admin.setting.nominal.toggle') }}",
+                type: 'POST',
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
+                dataType: 'json',
+                success: function(res) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Visibilitas Nominal Berubah!',
+                        text: res.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                },
+                error: function() {
+                    $btn.css('pointer-events', '').css('opacity', '');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: 'Terjadi kesalahan saat mengubah status nominal.'
+                    });
+                }
+            });
+        });
+    </script>
+@endif

@@ -45,6 +45,15 @@
                 </ul>
             </li>
             <!-- / Style Switcher-->
+            @if(Auth::check() && Auth::user()->isSuperAdmin())
+                <a href="javascript:void(0);" id="navbar-quick-toggle-nominal"
+                   class="badge rounded-pill me-2 d-none d-md-inline-flex align-items-center py-2 px-3 {{ ($showNominal ?? true) ? 'bg-label-success text-success' : 'bg-label-danger text-danger' }}"
+                   style="cursor: pointer; text-decoration: none; font-size: 0.8rem; font-weight: 600; border: 1px solid {{ ($showNominal ?? true) ? 'rgba(40, 199, 111, 0.4)' : 'rgba(234, 84, 85, 0.4)' }};"
+                   title="Klik untuk beralih mode Tampilkan / Sembunyikan Nominal di Seluruh Sistem">
+                    <i class="ti {{ ($showNominal ?? true) ? 'ti-eye' : 'ti-eye-off' }} me-1"></i>
+                    <span>Nominal: {{ ($showNominal ?? true) ? 'Tampil' : 'Disembunyikan' }}</span>
+                </a>
+            @endif
             <div class="banat-nav-date-pill mx-3 d-none d-sm-inline-flex">
                 <i class="ti ti-calendar me-1"></i> {{ \Carbon::now()->translatedFormat('l, d F Y') }}
             </div>
