@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/presensi/checkout', [MobileAttendanceController::class, 'checkOut']);
     Route::get('/presensi/today', [MobileAttendanceController::class, 'statusToday']);
     Route::get('/presensi/summary', [MobileAttendanceController::class, 'summaryMonthly']);
+    Route::get('/presensi/leaderboard', [MobileAttendanceController::class, 'getLeaderboard']);
     // Mobile Catatan Kegiatan & Keterangan Presensi
     Route::get('/presensi/kegiatan', [MobileAttendanceController::class, 'getKegiatan']);
     Route::post('/presensi/kegiatan', [MobileAttendanceController::class, 'storeKegiatan']);
@@ -68,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/data_absen', [AbsensiApiController::class, 'index']);
     Route::post('/absen', [AbsensiApiController::class, 'absenHariIni']);
     Route::post('/data_bydate', [AbsensiApiController::class, 'absensiByTgl']);
+    Route::get('/absensi/export/excel', [AbsensiApiController::class, 'exportAbsensiExcel']);
     Route::post('/data_bydate_not_user', [AbsensiApiController::class, 'absensiByTglNotUser']);
     Route::post('/belum_absen', [AbsensiApiController::class, 'belumAbsen']);
     Route::post('/absensi_byid', [AbsensiApiController::class, 'getDataAbsensiPerId']);

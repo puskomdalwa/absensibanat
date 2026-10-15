@@ -12,6 +12,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -418,17 +419,43 @@ class MobileAttendanceController extends Controller
                 'keterangan' => 'required|string',
             ]);
 
+            $authUser = $request->user();
+            $isExecutive = false;
+            if ($authUser) {
+                $roleName = strtolower($authUser->role ? ($authUser->role->akses ?? '') : '');
+                $isExecutive = in_array($roleName, ['admin', 'superadmin']) || ($authUser->role_id == 1 || $authUser->role_id == 2);
+            }
+
             $absensiId = $request->input('absensi_id');
             if (!$absensiId) {
                 $today = Carbon::today()->format('Y-m-d');
-                $absensi = Absensi::where('users_id', $request->user()->id)->where('tgl_absen', $today)->first();
+                $absensi = Absensi::where('users_id', $authUser->id)->where('tgl_absen', $today)->first();
                 if (!$absensi) {
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'Silakan lakukan absen masuk terlebih dahulu sebelum mengisi kegiatan.'
-                    ], 400);
+                    $device = Device::where('name', 'Aplikasi Mobile Banat')->first();
+                    $deviceId = $device ? $device->id : (Device::first()->id ?? 1);
+                    $defaultKategori = Kategori::orderBy('selisih', 'asc')->first();
+
+                    $absensi = new Absensi();
+                    $absensi->users_id = $authUser->id;
+                    $absensi->tgl_absen = $today;
+                    $absensi->verify_id = 1; // Manual / Dispensasi
+                    $absensi->device_id = $deviceId;
+                    $absensi->kategori_id = null; // Sakit / izin tanpa absen masuk tidak berbayar (nominal 0)
+                    $absensi->keterangan = $request->keterangan;
+                    $absensi->save();
                 }
                 $absensiId = $absensi->id;
+            } else {
+                // If not executive, verify that this attendance belongs to authUser
+                if (!$isExecutive && $authUser) {
+                    $ownerCheck = Absensi::where('id', $absensiId)->where('users_id', $authUser->id)->exists();
+                    if (!$ownerCheck) {
+                        return response()->json([
+                            'status' => false,
+                            'message' => 'Anda hanya berhak mengisi catatan kegiatan pada presensi Anda sendiri.'
+                        ], 403);
+                    }
+                }
             }
 
             $waktu = $request->waktu;
@@ -444,16 +471,19 @@ class MobileAttendanceController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'Alhamdulillah, catatan kegiatan berhasil disimpan!',
+                'message' => 'Catatan kegiatan berhasil ditambahkan!',
                 'data' => $ket
             ]);
         } catch (\Throwable $th) {
-            return response()->json(['status' => false, 'message' => $th->getMessage()], 500);
+            return response()->json([
+                'status' => false,
+                'message' => $th->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Perbarui Catatan Kegiatan / Keterangan Presensi
+     * Update Catatan Kegiatan
      */
     public function updateKegiatan(Request $request, $id)
     {
@@ -463,9 +493,27 @@ class MobileAttendanceController extends Controller
                 'keterangan' => 'required|string',
             ]);
 
+            $authUser = $request->user();
+            $isExecutive = false;
+            if ($authUser) {
+                $roleName = strtolower($authUser->role ? ($authUser->role->akses ?? '') : '');
+                $isExecutive = in_array($roleName, ['admin', 'superadmin']) || ($authUser->role_id == 1 || $authUser->role_id == 2);
+            }
+
             $ket = Keterangan::find($id);
             if (!$ket) {
                 return response()->json(['status' => false, 'message' => 'Data kegiatan tidak ditemukan.'], 404);
+            }
+
+            // Ownership check
+            if (!$isExecutive && $authUser) {
+                $ownerCheck = Absensi::where('id', $ket->absensi_id)->where('users_id', $authUser->id)->exists();
+                if (!$ownerCheck) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Anda hanya berhak mengubah catatan kegiatan Anda sendiri.'
+                    ], 403);
+                }
             }
 
             $waktu = $request->waktu;
@@ -493,10 +541,29 @@ class MobileAttendanceController extends Controller
     public function deleteKegiatan(Request $request, $id)
     {
         try {
+            $authUser = $request->user();
+            $isExecutive = false;
+            if ($authUser) {
+                $roleName = strtolower($authUser->role ? ($authUser->role->akses ?? '') : '');
+                $isExecutive = in_array($roleName, ['admin', 'superadmin']) || ($authUser->role_id == 1 || $authUser->role_id == 2);
+            }
+
             $ket = Keterangan::find($id);
             if (!$ket) {
                 return response()->json(['status' => false, 'message' => 'Data kegiatan tidak ditemukan.'], 404);
             }
+
+            // Ownership check
+            if (!$isExecutive && $authUser) {
+                $ownerCheck = Absensi::where('id', $ket->absensi_id)->where('users_id', $authUser->id)->exists();
+                if (!$ownerCheck) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Anda hanya berhak menghapus catatan kegiatan Anda sendiri.'
+                    ], 403);
+                }
+            }
+
             $ket->delete();
 
             return response()->json([
@@ -505,6 +572,225 @@ class MobileAttendanceController extends Controller
             ]);
         } catch (\Throwable $th) {
             return response()->json(['status' => false, 'message' => $th->getMessage()], 500);
+        }
+    }
+    /**
+     * Leaderboard Kehadiran Paling Awal (Early Bird) & Konsistensi
+     * - Periode today: Peringkat yang masuk paling pagi hari ini (mulai jam wajar >= 04:30:00)
+     * - Periode month: Peringkat dengan kehadiran terbanyak & rata-rata jam masuk paling awal
+     * - Mengecualikan superadmin agar netral dan adil
+     */
+    public function getLeaderboard(Request $request)
+    {
+        try {
+            $authUser = $request->user();
+            $periode = $request->input('periode', 'today'); // 'today' or 'month'
+            $roleFilter = $request->input('role_id', '*');
+
+            if ($periode === 'month') {
+                $month = $request->input('month', Carbon::now()->month);
+                $year = $request->input('year', Carbon::now()->year);
+
+                $query = DB::table('absensi')
+                    ->join('users', 'users.id', '=', 'absensi.users_id')
+                    ->leftJoin('role', 'role.id', '=', 'users.role_id')
+                    ->leftJoin('departemen', 'departemen.id', '=', 'users.departemen_id')
+                    ->whereMonth('absensi.tgl_absen', $month)
+                    ->whereYear('absensi.tgl_absen', $year)
+                    ->whereNotNull('absensi.pagi')
+                    ->where('absensi.pagi', '>=', '04:30:00')
+                    ->where(function ($q) {
+                        $q->whereNull('role.akses')
+                          ->orWhereRaw('LOWER(role.akses) NOT LIKE ?', ['%superadmin%']);
+                    })
+                    ->where(function ($q) {
+                        $q->whereNull('users.role_id')
+                          ->orWhere('users.role_id', '!=', 16);
+                    });
+
+                if ($roleFilter !== '*' && !empty($roleFilter)) {
+                    $query->where('users.role_id', $roleFilter);
+                }
+
+                $grouped = $query->groupBy('users.id', 'users.name', 'users.username', 'users.photo', 'role.akses', 'departemen.nama')
+                    ->select(
+                        'users.id as user_id',
+                        'users.name',
+                        'users.username',
+                        'users.photo',
+                        'role.akses as role_name',
+                        'departemen.nama as departemen_name',
+                        DB::raw('COUNT(absensi.id) as total_hadir'),
+                        DB::raw('AVG(TIME_TO_SEC(absensi.pagi)) as avg_detik'),
+                        DB::raw('MIN(absensi.pagi) as earliest_time')
+                    )
+                    ->orderBy('total_hadir', 'desc')
+                    ->orderBy('avg_detik', 'asc')
+                    ->get();
+
+                $leaderboard = [];
+                $myRank = null;
+
+                foreach ($grouped as $index => $item) {
+                    $rank = $index + 1;
+                    $avgSec = (int)$item->avg_detik;
+                    $avgH = floor($avgSec / 3600);
+                    $avgM = floor(($avgSec % 3600) / 60);
+                    $avgTimeFormatted = sprintf('%02d:%02d WIB', $avgH, $avgM);
+
+                    $isMe = ($authUser && $authUser->id == $item->user_id);
+
+                    $dataItem = [
+                        'rank' => $rank,
+                        'user_id' => $item->user_id,
+                        'name' => $item->name,
+                        'username' => $item->username,
+                        'photo' => $item->photo,
+                        'role' => strtoupper($item->role_name ?: 'USER'),
+                        'departemen' => $item->departemen_name ?: '-',
+                        'total_hadir' => (int)$item->total_hadir,
+                        'avg_jam_masuk' => $avgTimeFormatted,
+                        'earliest_jam' => $item->earliest_time ? substr($item->earliest_time, 0, 5) . ' WIB' : '-',
+                        'is_me' => $isMe,
+                    ];
+
+                    if ($rank <= 10) {
+                        $leaderboard[] = $dataItem;
+                    }
+
+                    if ($isMe) {
+                        $myRank = [
+                            'rank' => $rank,
+                            'total_hadir' => (int)$item->total_hadir,
+                            'avg_jam_masuk' => $avgTimeFormatted,
+                            'has_checked_in' => true,
+                            'motivational_text' => $rank <= 3
+                                ? 'Luar biasa! Anda berada di podium kehormatan bulan ini! 🏆'
+                                : 'Terus pertahankan kedisiplinan Anda hingga akhir bulan! 🌟',
+                        ];
+                    }
+                }
+
+                if (!$myRank && $authUser) {
+                    $myRank = [
+                        'rank' => null,
+                        'total_hadir' => 0,
+                        'avg_jam_masuk' => '-',
+                        'has_checked_in' => false,
+                        'motivational_text' => 'Anda belum memiliki rekam presensi bulan ini. Yuk mulai hadir tepat waktu!',
+                    ];
+                }
+
+                $monthName = Carbon::createFromDate($year, $month, 1)->translatedFormat('F Y');
+
+                return response()->json([
+                    'status' => true,
+                    'periode' => 'month',
+                    'date_label' => "Periode $monthName",
+                    'leaderboard' => $leaderboard,
+                    'my_rank' => $myRank,
+                    'total_peserta' => count($grouped),
+                ]);
+
+            } else {
+                // PERIODE TODAY (Early Bird Hari Ini)
+                $today = Carbon::today()->format('Y-m-d');
+
+                $query = DB::table('absensi')
+                    ->join('users', 'users.id', '=', 'absensi.users_id')
+                    ->leftJoin('role', 'role.id', '=', 'users.role_id')
+                    ->leftJoin('departemen', 'departemen.id', '=', 'users.departemen_id')
+                    ->where('absensi.tgl_absen', $today)
+                    ->whereNotNull('absensi.pagi')
+                    ->where('absensi.pagi', '>=', '04:30:00')
+                    ->where(function ($q) {
+                        $q->whereNull('role.akses')
+                          ->orWhereRaw('LOWER(role.akses) NOT LIKE ?', ['%superadmin%']);
+                    })
+                    ->where(function ($q) {
+                        $q->whereNull('users.role_id')
+                          ->orWhere('users.role_id', '!=', 16);
+                    });
+
+                if ($roleFilter !== '*' && !empty($roleFilter)) {
+                    $query->where('users.role_id', $roleFilter);
+                }
+
+                $allRows = $query->orderBy('absensi.pagi', 'asc')
+                    ->select(
+                        'users.id as user_id',
+                        'users.name',
+                        'users.username',
+                        'users.photo',
+                        'role.akses as role_name',
+                        'departemen.nama as departemen_name',
+                        'absensi.pagi',
+                        'absensi.sore',
+                        'absensi.selisih'
+                    )
+                    ->get();
+
+                $leaderboard = [];
+                $myRank = null;
+
+                foreach ($allRows as $index => $item) {
+                    $rank = $index + 1;
+                    $jamMasuk = substr($item->pagi, 0, 5) . ' WIB';
+                    $isMe = ($authUser && $authUser->id == $item->user_id);
+
+                    $dataItem = [
+                        'rank' => $rank,
+                        'user_id' => $item->user_id,
+                        'name' => $item->name,
+                        'username' => $item->username,
+                        'photo' => $item->photo,
+                        'role' => strtoupper($item->role_name ?: 'USER'),
+                        'departemen' => $item->departemen_name ?: '-',
+                        'jam_masuk' => $jamMasuk,
+                        'is_me' => $isMe,
+                    ];
+
+                    if ($rank <= 10) {
+                        $leaderboard[] = $dataItem;
+                    }
+
+                    if ($isMe) {
+                        $myRank = [
+                            'rank' => $rank,
+                            'jam_masuk' => $jamMasuk,
+                            'has_checked_in' => true,
+                            'motivational_text' => $rank <= 3
+                                ? 'Hebat! Anda berhasil meraih podium juara pagi hari ini! 🥇'
+                                : 'Bagus sekali! Anda berhasil masuk jajaran pagi hari ini. 🚀',
+                        ];
+                    }
+                }
+
+                if (!$myRank && $authUser) {
+                    $myRank = [
+                        'rank' => null,
+                        'jam_masuk' => '-',
+                        'has_checked_in' => false,
+                        'motivational_text' => 'Anda belum presensi masuk hari ini. Yuk presensi lebih awal besok pagi!',
+                    ];
+                }
+
+                $todayFormatted = Carbon::today()->translatedFormat('l, d F Y');
+
+                return response()->json([
+                    'status' => true,
+                    'periode' => 'today',
+                    'date_label' => $todayFormatted,
+                    'leaderboard' => $leaderboard,
+                    'my_rank' => $myRank,
+                    'total_peserta' => count($allRows),
+                ]);
+            }
+        } catch (\Throwable $th) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal memuat data leaderboard: ' . $th->getMessage(),
+            ], 500);
         }
     }
 }

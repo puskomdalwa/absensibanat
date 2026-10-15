@@ -12,6 +12,10 @@
 
     RewriteEngine On
 
+    # Fallback rewrite direct profile image requests to photo/ folder
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(profile_.+\.(png|jpg|jpeg|webp))$ photo/$1 [L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

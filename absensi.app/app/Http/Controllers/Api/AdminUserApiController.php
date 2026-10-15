@@ -150,6 +150,18 @@ class AdminUserApiController extends Controller
      */
     public function getUserAbsensi(Request $request, $id)
     {
+        $authUser = $request->user();
+        $isExecutive = false;
+        if ($authUser) {
+            $roleAkses = strtolower($authUser->role ? ($authUser->role->akses ?? '') : '');
+            if (in_array($authUser->role_id, [1, 2]) || in_array($roleAkses, ['admin', 'superadmin'])) {
+                $isExecutive = true;
+            }
+        }
+        if (!$isExecutive && $authUser) {
+            $id = $authUser->id; // Strict security: non-admin can only see own detail absensi
+        }
+
         $user = User::with(['role', 'departemen'])->findOrFail($id);
 
         $report = $this->buildUserAbsensiReport($user, $request);
@@ -179,6 +191,18 @@ class AdminUserApiController extends Controller
      */
     public function exportUserAbsensiExcel(Request $request, $id)
     {
+        $authUser = $request->user();
+        $isExecutive = false;
+        if ($authUser) {
+            $roleAkses = strtolower($authUser->role ? ($authUser->role->akses ?? '') : '');
+            if (in_array($authUser->role_id, [1, 2]) || in_array($roleAkses, ['admin', 'superadmin'])) {
+                $isExecutive = true;
+            }
+        }
+        if (!$isExecutive && $authUser) {
+            $id = $authUser->id; // Strict security: non-admin can only export own detail absensi
+        }
+
         $user = User::with(['role', 'departemen'])->findOrFail($id);
         $report = $this->buildUserAbsensiReport($user, $request);
 
@@ -273,6 +297,9 @@ class AdminUserApiController extends Controller
         }
 
         foreach ($rows as $index => $row) {
+            $hasCheckIn = !empty($row->pagi) && $row->pagi !== '-';
+            $rowKeterangans = $keterangansByAbsensi[$row->id] ?? [];
+
             $menit = (int)($row->selisih ?? 0);
             if ($menit <= 0 && $row->pagi && $row->sore) {
                 try {
@@ -284,36 +311,62 @@ class AdminUserApiController extends Controller
                 }
             }
 
-            $nominal = (float)($row->kategori_nominal ?? 0);
-            $kategoriKey = $row->kategori_id ?: 'tanpa_kategori';
+            if (!$hasCheckIn) {
+                // SAKIT / IZIN / TIDAK HADIR: Pendapatan hari itu 0, BUKAN kategori C!
+                $menit = 0;
+                $nominal = 0;
+                $durasiTeks = '-';
 
-            if (!isset($summaryByCategory[$kategoriKey])) {
-                $summaryByCategory[$kategoriKey] = [
-                    'id' => $row->kategori_id,
-                    'kode' => $row->kategori_kode ?: '-',
-                    'nama' => $row->kategori_nama ?: 'Tanpa Kategori',
-                    'nominal_per_absensi' => $nominal,
-                    'nominal_per_absensi_formatted' => 'Rp ' . number_format($nominal, 0, ',', '.'),
-                    'total_absensi' => 0,
-                    'total_nominal' => 0,
-                    'total_nominal_formatted' => 'Rp 0',
-                    'total_menit' => 0,
-                    'durasi_teks' => '-',
-                ];
+                $ketText = strtolower((string)($row->keterangan ?? ''));
+                if (empty($ketText) && !empty($rowKeterangans)) {
+                    $firstKet = reset($rowKeterangans);
+                    $ketText = strtolower((string)($firstKet->keterangan ?? ''));
+                }
+
+                if (str_contains($ketText, 'sakit')) {
+                    $kategoriNama = 'Sakit';
+                } elseif (str_contains($ketText, 'izin')) {
+                    $kategoriNama = 'Izin';
+                } elseif (!empty($ketText)) {
+                    $kategoriNama = 'Izin / Keterangan';
+                } else {
+                    $kategoriNama = 'Tidak Hadir';
+                }
+
+                $kategoriTeks = $kategoriNama;
+            } else {
+                $durasiJam = floor($menit / 60);
+                $durasiSisa = $menit % 60;
+                $durasiTeks = $menit > 0 ? "{$durasiJam}j {$durasiSisa}m" : '-';
+
+                $nominal = (float)($row->kategori_nominal ?? 0);
+                $kategoriKey = $row->kategori_id ?: 'tanpa_kategori';
+
+                if (!isset($summaryByCategory[$kategoriKey])) {
+                    $summaryByCategory[$kategoriKey] = [
+                        'id' => $row->kategori_id,
+                        'kode' => $row->kategori_kode ?: '-',
+                        'nama' => $row->kategori_nama ?: 'Tanpa Kategori',
+                        'nominal_per_absensi' => $nominal,
+                        'nominal_per_absensi_formatted' => 'Rp ' . number_format($nominal, 0, ',', '.'),
+                        'total_absensi' => 0,
+                        'total_nominal' => 0,
+                        'total_nominal_formatted' => 'Rp 0',
+                        'total_menit' => 0,
+                        'durasi_teks' => '-',
+                    ];
+                }
+
+                $summaryByCategory[$kategoriKey]['total_absensi']++;
+                $summaryByCategory[$kategoriKey]['total_nominal'] += $nominal;
+                $summaryByCategory[$kategoriKey]['total_menit'] += $menit;
+
+                $totalMenit += $menit;
+                $totalNominal += $nominal;
+
+                $kategoriTeks = trim(($row->kategori_kode ?: '-') . ' - ' . ($row->kategori_nama ?: 'Tanpa Kategori'));
+                $kategoriNama = $row->kategori_nama ?: 'Hadir';
             }
-
-            $summaryByCategory[$kategoriKey]['total_absensi']++;
-            $summaryByCategory[$kategoriKey]['total_nominal'] += $nominal;
-            $summaryByCategory[$kategoriKey]['total_menit'] += $menit;
-
-            $totalMenit += $menit;
-            $totalNominal += $nominal;
-
-            $durasiJam = floor($menit / 60);
-            $durasiSisa = $menit % 60;
-            $durasiTeks = $menit > 0 ? "{$durasiJam}j {$durasiSisa}m" : '-';
-
-            $rowKeterangans = $keterangansByAbsensi[$row->id] ?? [];
 
             $details[] = [
                 'no' => $index + 1,
@@ -324,8 +377,8 @@ class AdminUserApiController extends Controller
                 'jam_pulang' => $row->sore ? substr($row->sore, 0, 5) . ' WIB' : '-',
                 'pagi_raw' => $row->pagi,
                 'sore_raw' => $row->sore,
-                'kategori' => trim(($row->kategori_kode ?: '-') . ' - ' . ($row->kategori_nama ?: 'Tanpa Kategori')),
-                'kategori_nama' => $row->kategori_nama,
+                'kategori' => $kategoriTeks,
+                'kategori_nama' => $kategoriNama,
                 'durasi_menit' => $menit,
                 'durasi_teks' => $durasiTeks,
                 'nominal' => $nominal,
